@@ -87,12 +87,12 @@
   <section class="card">
     <h2>Diagrama de proceso PL/SQL</h2>
     @if (session.report.processFlows.length) {
-    <label>Seleccionar bloque<select #flowSelect [value]="currentFlow()?.id ?? ''"
+    @if (currentFlow(); as flow) {
+    <label>Seleccionar bloque<select #flowSelect [value]="flow.id"
         (change)="selectedFlow.set(flowSelect.value)">
         @for (flow of session.report.processFlows; track flow.id) { <option [value]="flow.id">{{ flow.name }} · {{
           flow.path }}:{{ flow.startLine }}</option> }
       </select></label>
-    @if (currentFlow(); as flow) {
     <p><code>{{ flow.path }} · líneas {{ flow.startLine }}–{{ flow.endLine }}</code></p>
     <div class="flow-canvas" aria-label="Diagrama del bloque seleccionado">
       <div class="flow-node flow-terminal">Inicio del bloque <small>Línea {{ flow.startLine }}</small></div>
