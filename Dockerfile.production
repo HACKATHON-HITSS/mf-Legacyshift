@@ -1,0 +1,90 @@
+# Stage 1: Build Angular Frontend
+FROM node:24-alpine AS frontend-builder
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci --omit=dev
+
+COPY . .
+RUN npm run build
+
+# Stage 2: Build & Run Server + Frontend
+FROM node:24-alpine
+
+WORKDIR /app
+
+# Instala dependencias necesarias para el servidor
+COPY package*.json ./
+RUN npm ci --production && npm cache clean --force
+
+# Copia el servidor
+COPY server/ ./server/
+
+# Copia el frontend construido
+COPY --from=frontend-builder /app/dist/mf-PR-Guardian-AI/browser/ ./public/
+
+# Crea un pequeño servidor Express que sirve ambos
+RUN cat > server.js << 'EOF'
+import { createServer } from 'node:http';
+import { createReadStream, statSync } from 'node:fs';
+import { extname, join } from 'node:path';
+import { createHuaweiServer } from './server/huawei-server.mjs';
+
+const PORT = process.env.PORT || 3000;
+const huaweiServer = createHuaweiServer();
+
+// Tipos MIME
+const mimeTypes = {
+  '.html': 'text/html',
+  '.js': 'application/javascript',
+  '.css': 'text/css',
+  '.json': 'application/json',
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.svg': 'image/svg+xml',
+  '.woff2': 'font/woff2',
+};
+
+const publicDir = './public';
+
+const server = createServer((req, res) => {
+  // Delegar rutas de API al servidor de Huawei
+  if (req.url.startsWith('/api/legacyshift/')) {
+    huaweiServer.emit('request', req, res);
+    return;
+  }
+
+  // Servir archivos estáticos del frontend
+  let filePath = join(publicDir, req.url === '/' ? 'index.html' : req.url);
+  
+  try {
+    const stats = statSync(filePath);
+    if (stats.isDirectory()) {
+      filePath = join(filePath, 'index.html');
+    }
+    
+    const ext = extname(filePath);
+    const contentType = mimeTypes[ext] || 'application/octet-stream';
+    
+    res.writeHead(200, { 'Content-Type': contentType });
+    createReadStream(filePath).pipe(res);
+  } catch {
+    // SPA: redirige rutas no encontradas a index.html
+    if (req.url !== '/' && !req.url.includes('.')) {
+      const indexPath = join(publicDir, 'index.html');
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      createReadStream(indexPath).pipe(res);
+    } else {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('404 Not Found');
+    }
+  }
+});
+
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Frontend en http://0.0.0.0:${PORT}`);
+  console.log(`📡 API Huawei en http://0.0.0.0:${PORT}/api/legacyshift/`);
+  console.log(`🔑 HUAWEI_MAAS_MODEL: ${process.env.HUAWEI_MAAS_MODEL || 'NO CONFIGURADO'}`);
+});
+EOF

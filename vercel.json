@@ -1,5 +1,18 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist/mf-PR-Guardian-AI/browser",
-  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+  "functions": {
+    "api/huawei.js": {
+      "memory": 3008,
+      "maxDuration": 300
+    }
+  },
+  "rewrites": [
+    { "source": "/api/legacyshift/(.*)", "destination": "/api/huawei" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "env": {
+    "HUAWEI_MAAS_API_KEY": "@huawei_maas_api_key",
+    "HUAWEI_MAAS_MODEL": "@huawei_maas_model"
+  }
 }
