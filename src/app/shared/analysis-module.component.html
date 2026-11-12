@@ -836,6 +836,39 @@
     @if (aiAnswer() && section() !== 'chat') { <p class="answer" aria-live="polite">{{ aiAnswer() }}</p> }
   </section>
   }
+  @if (section() === 'chat') {
+  <section class="card deployment-demo" aria-labelledby="deployment-demo-title">
+    <h2 id="deployment-demo-title">Despliegue en repositorio</h2>
+    <p>La lista es de referencia. La selección no se envía ni se realiza un despliegue.</p>
+    <div class="deployment-fields">
+      <div>
+        <label>Adjuntar archivo<input #deploymentFileInput type="file" [disabled]="deploymentRunning()" (change)="setDeploymentFile(deploymentFileInput, deploymentFolderInput)" /></label>
+        <label>Adjuntar carpeta<input #deploymentFolderInput type="file" multiple webkitdirectory [disabled]="deploymentRunning()" (change)="setDeploymentFolder(deploymentFolderInput, deploymentFileInput)" /></label>
+        @if (deploymentAttachment(); as attachment) { <p role="status">{{ attachment.kind === 'folder' ? 'Carpeta seleccionada' : 'Archivo seleccionado' }}: {{ attachment.name }}@if (attachment.kind === 'folder') { · {{ attachment.fileCount }} archivo(s) }</p> }
+        @if (deploymentAttachmentError()) { <p role="alert">{{ deploymentAttachmentError() }}</p> }
+        <p>La selección de carpeta incluye archivos de subcarpetas, pero no carpetas vacías.</p>
+      </div>
+      <label>Seleccionar PR<select #deploymentPr [value]="deploymentSelection()" [disabled]="deploymentRunning()" (change)="setDeploymentSelection(deploymentPr.value)">
+        <option value="">Selecciona un PR</option>
+        @for (pr of deploymentPrs; track pr) { <option [value]="pr">{{ pr }}</option> }
+      </select></label>
+    </div>
+    <button class="migration-primary" type="button" [disabled]="deploymentRunning() || !deploymentAttachment() || !!deploymentAttachmentError() || !deploymentSelection()" (click)="startDeploymentDemo()">Desplegar</button>
+    <dialog #deploymentDialog class="migration-dialog" aria-labelledby="deployment-dialog-title" [attr.aria-describedby]="deploymentRunning() ? 'deployment-dialog-description' : null" (cancel)="deploymentRunning() && $event.preventDefault()">
+      @if (deploymentRunning()) {
+        <div class="migration-loader" aria-hidden="true"></div>
+        <h2 id="deployment-dialog-title">Desplegando proyecto</h2>
+        <p id="deployment-dialog-description">{{ deploymentAttachment()?.name }} · {{ deploymentSelection() }}</p>
+        <strong class="migration-percentage">{{ deploymentProgress() }}%</strong>
+        <progress class="migration-progress" aria-label="Progreso del proceso" max="100" [value]="deploymentProgress()"></progress>
+      } @else if (deploymentResult()) {
+        <svg class="deployment-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12l4 4L19 6" /></svg>
+        <h2 id="deployment-dialog-title">Despliegue exitoso</h2>
+        <button type="button" (click)="closeDeploymentDialog()">Cerrar</button>
+      }
+    </dialog>
+  </section>
+  }
   @if (section() !== 'arquitectura-objetivo') {
   <p class="footnote">El informe y las decisiones se mantienen al cambiar de módulo. Recargar la página o seleccionar
     otro proyecto los elimina; exporta antes de salir. El detector local y MaaS revisan código; las pruebas Java sí lo ejecutan cuando están configuradas.</p>

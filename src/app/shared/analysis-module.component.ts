@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, ElementRef, inject, input, signal, viewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
-import { AnalysisSessionService, RuleDecision, MvpRuleStatus } from './analysis-session.service';
+import { AnalysisSession, AnalysisSessionService, RuleDecision, MvpRuleStatus } from './analysis-session.service';
 import { ANALYSIS_SECTIONS, DECISION_SECTIONS, SectionKey } from './analysis-sections';
 import { HuaweiAnalysisService } from './huawei-analysis.service';
 import { redactEvidence } from '../features/codigo-fuente/proyecto/project-findings';
@@ -35,7 +35,24 @@ export class AnalysisModuleComponent {
   private readonly migrationDialog = viewChild<ElementRef<HTMLDialogElement>>('migrationDialog');
   private migrationTick?: ReturnType<typeof setInterval>;
   private migrationFinish?: ReturnType<typeof setTimeout>;
-  constructor() { inject(DestroyRef).onDestroy(() => this.clearMigrationTimers()); }
+  readonly deploymentAttachment = signal<{ name: string; kind: 'file' | 'folder'; fileCount: number } | null>(null);
+  readonly deploymentAttachmentError = signal('');
+  readonly deploymentSelection = signal('');
+  readonly deploymentPrs = [
+    '#33 · ms-utl-remesa', '#34 · biometric-local', '#35 · reniec-biometric', '#36 · mf-buro',
+    '#37 · sh-buro', '#38 · sh-caja', '#39 · ms-utl-remesa', '#40 · biometric-local',
+    '#41 · mf-buro', '#42 · sh-buro', '#43 · sh-caja', '#44 · ms-utl-remesa',
+    '#45 · biometric-local', '#46 · reniec-biometric', '#47 · mf-buro', '#48 · sh-buro',
+    '#49 · sh-caja', '#50 · ms-utl-remesa', '#51 · biometric-local', '#52 · reniec-biometric',
+    '#53 · SimcardsApp'
+  ];
+  readonly deploymentRunning = signal(false);
+  readonly deploymentProgress = signal(0);
+  readonly deploymentResult = signal<{ session: AnalysisSession; fileName: string; pr: string } | null>(null);
+  private readonly deploymentDialog = viewChild<ElementRef<HTMLDialogElement>>('deploymentDialog');
+  private deploymentTick?: ReturnType<typeof setInterval>;
+  private deploymentFinish?: ReturnType<typeof setTimeout>;
+  constructor() { inject(DestroyRef).onDestroy(() => { this.clearMigrationTimers(); this.clearDeploymentTimers(); }); }
   readonly migrationArchitectures = MIGRATION_ARCHITECTURES;
   readonly migrationArchetypes = computed(() => MIGRATION_ARCHETYPES.filter(item => item.architecture === this.store.migrationTarget().architecture));
   readonly migrationReady = computed(() => {
@@ -256,6 +273,80 @@ export class AnalysisModuleComponent {
   }
 
   filter(value: string): void { this.search.set(value); this.page.set(0); }
+  setDeploymentSelection(value: string): void {
+    if (this.deploymentRunning()) return;
+    this.deploymentSelection.set(this.deploymentPrs.includes(value) ? value : '');
+    this.deploymentResult.set(null);
+    this.deploymentProgress.set(0);
+  }
+  setDeploymentFile(input: HTMLInputElement, folderInput: HTMLInputElement): void {
+    if (this.deploymentRunning()) return;
+    const file = input.files?.item(0);
+    if (!file) return;
+    this.deploymentAttachment.set({ name: file.name, kind: 'file', fileCount: 1 });
+    this.deploymentAttachmentError.set('');
+    folderInput.value = '';
+    this.deploymentResult.set(null);
+    this.deploymentProgress.set(0);
+  }
+  setDeploymentFolder(input: HTMLInputElement, fileInput: HTMLInputElement): void {
+    if (this.deploymentRunning()) return;
+    const files = Array.from(input.files ?? []);
+    if (!files.length) {
+      this.deploymentAttachmentError.set('Selecciona una carpeta que contenga archivos.');
+      return;
+    }
+    const firstPath = files[0].webkitRelativePath;
+    const name = typeof firstPath === 'string' ? firstPath.split('/')[0] : '';
+    if (!name || files.some(file => typeof file.webkitRelativePath !== 'string' || !file.webkitRelativePath.startsWith(`${name}/`))) {
+      this.deploymentAttachmentError.set('El navegador no informó las rutas de la carpeta. Usa un navegador compatible, como Chrome o Edge.');
+      return;
+    }
+    this.deploymentAttachment.set({ name, kind: 'folder', fileCount: files.length });
+    this.deploymentAttachmentError.set('');
+    fileInput.value = '';
+    this.deploymentResult.set(null);
+    this.deploymentProgress.set(0);
+  }
+  startDeploymentDemo(): void {
+    const session = this.store.session();
+    const attachment = this.deploymentAttachment();
+    if (!session || !attachment || this.deploymentAttachmentError() || !this.deploymentPrs.includes(this.deploymentSelection()) || this.deploymentRunning()) return;
+    this.deploymentResult.set(null);
+    this.deploymentProgress.set(0);
+    this.deploymentRunning.set(true);
+    const dialog = this.deploymentDialog()?.nativeElement;
+    if (dialog && typeof dialog.showModal === 'function') dialog.showModal();
+    else dialog?.setAttribute('open', '');
+    const started = Date.now();
+    this.deploymentTick = setInterval(() => {
+      if (this.store.session() !== session) { this.cancelDeploymentDemo(); return; }
+      this.deploymentProgress.set(Math.min(99, Math.floor((Date.now() - started) / 150)));
+    }, 100);
+    this.deploymentFinish = setTimeout(() => {
+      if (this.store.session() !== session) { this.cancelDeploymentDemo(); return; }
+      this.clearDeploymentTimers();
+      this.deploymentProgress.set(100);
+      this.deploymentRunning.set(false);
+      this.deploymentResult.set({ session, fileName: attachment.name, pr: this.deploymentSelection() });
+    }, 15_000);
+  }
+  closeDeploymentDialog(): void {
+    if (this.deploymentRunning()) return;
+    const dialog = this.deploymentDialog()?.nativeElement;
+    if (dialog && typeof dialog.close === 'function') dialog.close();
+    else dialog?.removeAttribute('open');
+  }
+  private clearDeploymentTimers(): void {
+    clearInterval(this.deploymentTick); clearTimeout(this.deploymentFinish);
+  }
+  private cancelDeploymentDemo(): void {
+    this.clearDeploymentTimers();
+    this.deploymentRunning.set(false);
+    this.deploymentProgress.set(0);
+    this.deploymentResult.set(null);
+    this.closeDeploymentDialog();
+  }
   setMigrationTarget(key: keyof MigrationTarget, value: string): void {
     if (this.migrationPreparing()) return;
     this.store.migrationTarget.update(target => ({ ...target, [key]: value,
