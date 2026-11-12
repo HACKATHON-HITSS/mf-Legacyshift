@@ -2,6 +2,9 @@ import { extractCodeFindings, CodeFinding, redactEvidence } from './project-find
 import { BusinessRule, extractBusinessRules } from './business-rules';
 import { ProcessFlow, extractProcessFlows } from './process-flow';
 import { JavaAnalysis, emptyJavaAnalysis, parseJavaFile, recursionWithoutExit, resolveJavaAnalysis } from './java-analysis';
+import { HTTP_ENDPOINT_AGENT } from './http-endpoints.agent';
+import { HttpEndpoint } from './http-endpoints';
+import { SECURITY_VALIDATION_AGENT, SecurityScan } from './security-validation.agent';
 import { ConfiguredProcedure, ProcedureAnalysis, ProcedureSource, analyzeConfiguredProcedures, describeProcedure, extractConfiguredProcedures } from './stored-procedures';
 
 export type FileAnalysis = {
@@ -23,6 +26,8 @@ export type AnalysisReference = {
 
 export type LocalAnalysisReport = {
   java: JavaAnalysis;
+  httpEndpoints?: HttpEndpoint[];
+  securityScan?: SecurityScan;
   processFlows: ProcessFlow[];
   artifactVersion: string | null;
   businessRules: BusinessRule[];
@@ -72,6 +77,7 @@ export async function analyzeLocalProject(
   onProgress: (processed: number) => void
 ): Promise<LocalAnalysisReport> {
   const report: LocalAnalysisReport = {
+    securityScan: { files: 0, checks: 0, omittedCandidates: 0 },
     java: emptyJavaAnalysis(), processFlows: [], artifactVersion: null, businessRules: [], findings: [], files: [], languages: [], dependencies: [], imports: [], hardcoded: [], operations: [], storedProcedures: [],
     analyzed: 0, skipped: 0, errors: 0, totalLines: 0
   };
@@ -113,6 +119,7 @@ export async function analyzeLocalProject(
   }
 
   report.java = resolveJavaAnalysis(javaParts);
+  report.httpEndpoints = HTTP_ENDPOINT_AGENT.analyze(report.java);
   for (const method of report.java.methods) for (const condition of method.conditions.filter(item => item.kind === 'ifStatement')) {
     const file = report.files.find(item => item.path === method.path);
     report.businessRules.push({
@@ -219,7 +226,14 @@ async function analyzeFile(
   stats.lines += entry.lines;
   languages.set(entry.language, stats);
 
-  report.findings.push(...extractCodeFindings(text, entry.path, entry.language));
+  const candidates = extractCodeFindings(text, entry.path, entry.language);
+  const security = SECURITY_VALIDATION_AGENT.analyze(text, entry.path, entry.language, candidates.filter(item => item.category === 'vulnerabilidades'));
+  report.findings.push(...candidates.filter(item => item.category !== 'vulnerabilidades'), ...security.findings);
+  if (report.securityScan) {
+    report.securityScan.files += security.scan.files;
+    report.securityScan.checks += security.scan.checks;
+    report.securityScan.omittedCandidates += security.scan.omittedCandidates;
+  }
   if (entry.language === 'Java') {
     const parsed = parseJavaFile(text, entry.path);
     javaParts.push(parsed);

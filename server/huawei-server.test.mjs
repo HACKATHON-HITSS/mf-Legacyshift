@@ -10,6 +10,32 @@ async function withServer(options, run) {
 }
 const request = { method: 'POST', headers: { 'Content-Type': 'application/json', Origin: 'http://localhost:4211' }, body: JSON.stringify({ question: 'Explica las reglas', context: { findings: [] } }) };
 
+test('reviews security with server-side credentials independently of the general ten-request limit', async () => {
+  let calls = 0;
+  await withServer({ apiKey: 'server-only', model: 'test-model', fetchImpl: async (_, options) => {
+    calls++; assert.equal(options.headers.Authorization, 'Bearer server-only');
+    return Response.json({ choices: [{ message: { content: '{"resultados":[]}' } }] });
+  } }, async url => {
+    for (let i = 0; i < 11; i++) assert.equal((await fetch(`${url}/security`, request)).status, 200);
+    assert.equal(calls, 11);
+    assert.equal((await fetch(`${url}/security`, { ...request, headers: { ...request.headers, Origin: 'https://untrusted.example' } })).status, 403);
+  });
+});
+
+test('runs the Java agent locally without Huawei credentials or provider calls', async () => {
+  await withServer({ apiKey: '', model: '', fetchImpl: () => { throw new Error('No provider calls'); }, javaTestRunner: async path => ({ projectPath: path, status: 'no_tests', coverageFiles: [], limitations: 'Pruebas existentes' }) }, async url => {
+    const endpoint = url.replace('/huawei', '/java-tests');
+    assert.equal((await fetch(endpoint, { ...request, body: '{}' })).status, 400);
+    const response = await fetch(endpoint, { ...request, body: JSON.stringify({ projectPath: 'D:\\Projects\\Demo' }) });
+    assert.equal(response.status, 200);
+    assert.equal((await response.json()).status, 'no_tests');
+    const upload = await fetch(endpoint, { ...request, body: JSON.stringify({ projectName: 'Demo', files: [{ path: 'Demo/pom.xml', data: Buffer.from('<project/>').toString('base64') }] }) });
+    assert.equal(upload.status, 200);
+    assert.equal((await upload.json()).projectPath, 'Demo');
+    assert.equal((await fetch(endpoint, { ...request, headers: { ...request.headers, Origin: 'https://untrusted.example' } })).status, 403);
+  });
+});
+
 test('requires server configuration and does not call the provider', async () => {
   await withServer({ apiKey: '', model: '', fetchImpl: () => { throw new Error('Must not call'); } }, async url => {
     const response = await fetch(url, request);

@@ -1,6 +1,8 @@
 import { Injectable, signal } from '@angular/core';
 import { LocalAnalysisReport } from '../features/codigo-fuente/proyecto/local-project-analyzer';
 import { BusinessDiscovery } from './business-discovery';
+import { JavaTestResult } from './java-test-result';
+import { AiSecurityReview } from './security-review.agent';
 
 export type RuleDecision = 'Pendiente' | 'Aprobada' | 'Descartada';
 export type MvpRuleStatus = 'PENDING' | 'VALIDATED' | 'REJECTED' | 'UNDER_INVESTIGATION';
@@ -16,6 +18,10 @@ export class AnalysisSessionService {
   readonly ruleNotes = signal<Partial<Record<string, string>>>({});
   readonly ruleInterpretations = signal<Partial<Record<string, string>>>({});
   readonly businessDiscoveries = signal<Partial<Record<string, BusinessDiscovery>>>({});
+  readonly javaTests = signal<JavaTestResult | null>(null);
+  readonly javaTestError = signal('');
+  readonly aiSecurityReview = signal<AiSecurityReview | null>(null);
+  readonly securityDemoEnabled = signal(false);
   readonly technology = signal('');
   readonly technologyReason = signal('');
   readonly messages = signal<{ question: string; answer: string }[]>([]);
@@ -33,6 +39,10 @@ export class AnalysisSessionService {
     this.ruleNotes.set({});
     this.ruleInterpretations.set({});
     this.businessDiscoveries.set({});
+    this.javaTests.set(null);
+    this.javaTestError.set('');
+    this.aiSecurityReview.set(null);
+    this.securityDemoEnabled.set(false);
     this.technology.set('');
     this.technologyReason.set('');
     this.messages.set([]);
@@ -45,9 +55,9 @@ export class AnalysisSessionService {
 
   exportData() {
     return {
-      schemaVersion: 1, analysis: this.session(), decisions: this.decisions(), ruleStatuses: this.ruleStatuses(), ruleNotes: this.ruleNotes(), ruleInterpretations: this.ruleInterpretations(), businessDiscoveries: this.businessDiscoveries(),
+      schemaVersion: 1, analysis: this.session(), decisions: this.decisions(), ruleStatuses: this.ruleStatuses(), ruleNotes: this.ruleNotes(), ruleInterpretations: this.ruleInterpretations(), businessDiscoveries: this.businessDiscoveries(), javaTests: this.javaTests(), aiSecurityReview: this.aiSecurityReview(),
       target: { technology: this.technology(), reason: this.technologyReason() },
-      limitations: 'Análisis estático local por patrones, sin IA ni ejecución del código. Los candidatos requieren revisión humana. No demuestra ausencia de riesgos.'
+      limitations: 'El informe distingue detección estática local, revisión con IA y pruebas Java, cuando están disponibles. Las conclusiones de IA son propuestas, no pruebas ejecutadas. Ningún resultado demuestra ausencia de riesgos.'
     };
   }
 }

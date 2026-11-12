@@ -11,6 +11,9 @@ export type CodeFinding = {
   evidence: string;
   severity: 'Informativa' | 'Media' | 'Alta';
   limitation: string;
+  security?: {
+    ruleId: string; status: 'pattern' | 'review'; checked: string; conclusion: string; nextStep: string;
+  };
 };
 
 // Values are deliberately omitted from evidence, including conditions and exports.

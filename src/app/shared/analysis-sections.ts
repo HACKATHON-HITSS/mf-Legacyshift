@@ -4,8 +4,8 @@ export const ANALYSIS_SECTIONS = [
   { key: 'condiciones', title: 'Condiciones funcionales y técnicas', description: 'Decisiones de control detectadas. La clasificación funcional o técnica requiere revisar su contexto.' },
   { key: 'entradas-salidas', title: 'Entradas y salidas', description: 'Contratos WSDL, entradas HTTP y operaciones de persistencia detectadas.' },
   { key: 'datos-hardcodeados', title: 'Datos y valores hardcodeados', description: 'Asignaciones y configuraciones candidatas a externalizar. Los valores literales se omiten.' },
-  { key: 'deuda-tecnica', title: 'Deuda técnica y código innecesario', description: 'Pendientes declarados, excepciones ignoradas y recursión Java sin condición de salida. No determina código muerto, duplicación ni complejidad global.' },
-  { key: 'vulnerabilidades', title: 'Vulnerabilidades y riesgos', description: 'Operaciones sensibles y configuración literal. Los riesgos necesitan validación; no es una auditoría de seguridad.' },
+  { key: 'deuda-tecnica', title: 'Deuda técnica y código innecesario', description: 'Qué conviene revisar antes de migrar o mantener el sistema, por qué y cuál es el siguiente paso.' },
+  { key: 'vulnerabilidades', title: 'Vulnerabilidades y riesgos', description: 'Señales de seguridad contrastadas con el código: qué se comprobó, qué falta confirmar y cómo revisarlo.' },
   { key: 'dependencias', title: 'Dependencias', description: 'Bibliotecas declaradas, imports externos y procedimientos almacenados configurados en properties con su uso en el código. Su compatibilidad y necesidad de migración quedan pendientes de evaluación.' },
   { key: 'arquitectura', title: 'Arquitectura actual y diagramas', description: 'Inventario agrupado por función estimada a partir de las rutas. No infiere relaciones de ejecución sin evidencia.' }
 ] as const;

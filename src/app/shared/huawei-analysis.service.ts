@@ -42,12 +42,12 @@ export class HuaweiAnalysisService {
     if (revision === this.connectionRevision) this.connection.set({ configured: false, verified: false, model: '', url: this.defaultUrl });
   }
 
-  async ask(question: string, context: unknown): Promise<string> {
+  async ask(question: string, context: unknown, options?: { purpose?: 'security'; signal?: AbortSignal }): Promise<string> {
     let response: Response;
     try {
-      response = await fetch(`${environment.huaweiApiBaseUrl}/api/legacyshift/huawei`, {
+      response = await fetch(`${environment.huaweiApiBaseUrl}/api/legacyshift/huawei${options?.purpose === 'security' ? '/security' : ''}`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question, context }), signal: AbortSignal.timeout(120_000)
+        body: JSON.stringify({ question, context }), signal: options?.signal ? AbortSignal.any([options.signal, AbortSignal.timeout(120_000)]) : AbortSignal.timeout(120_000)
       });
     } catch {
       throw new Error('No se pudo contactar al servicio de Huawei. Verifica que el servidor de análisis esté iniciado.');

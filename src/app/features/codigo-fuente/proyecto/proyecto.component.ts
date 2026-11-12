@@ -1,8 +1,6 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { Router, RouterLink } from '@angular/router';
+import { ChangeDetectionStrategy, Component, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { AnalysisSessionService } from '../../../shared/analysis-session.service';
 import { analyzeLocalProject, LocalAnalysisReport } from './local-project-analyzer';
-import { ProjectAnalysisResultsComponent } from './project-analysis-results.component';
 import { extractProjectZip } from './zip-project';
 
 type ProjectAttachment = {
@@ -14,14 +12,13 @@ type ProjectAttachment = {
 
 @Component({
   selector: 'app-mf-proyecto',
-  imports: [ProjectAnalysisResultsComponent, RouterLink],
+  imports: [],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './proyecto.component.html',
   styleUrl: './proyecto.component.css'
 })
 export class ProyectoComponent {
   readonly sessionStore = inject(AnalysisSessionService);
-  private readonly router = inject(Router);
   readonly selectedAttachment = signal<ProjectAttachment | null>(null);
   readonly errorMessage = signal('');
   readonly isDragging = signal(false);
@@ -30,19 +27,20 @@ export class ProyectoComponent {
   readonly totalFiles = signal(0);
   readonly analysisReport = signal<LocalAnalysisReport | null>(this.sessionStore.session()?.report ?? null);
   private dragDepth = 0;
+  private readonly filePicker = viewChild<ElementRef<HTMLInputElement>>('fileInput');
+  private readonly folderPicker = viewChild<ElementRef<HTMLInputElement>>('folderInput');
 
   onFileSelected(input: HTMLInputElement): void {
     const files = Array.from(input.files ?? []);
-    input.value = '';
     if (this.rejectChangeWhileAnalyzing()) return;
     if (files.length > 0) {
       this.selectFiles(files);
+      if (this.selectedAttachment()?.files[0] === files[0]) this.clearPicker('folder');
     }
   }
 
   onFolderSelected(input: HTMLInputElement): void {
     const files = Array.from(input.files ?? []);
-    input.value = '';
     if (this.rejectChangeWhileAnalyzing()) return;
     if (files.length === 0) {
       return;
@@ -58,6 +56,7 @@ export class ProyectoComponent {
       size: files.reduce((total, file) => total + file.size, 0),
       files
     });
+    this.clearPicker('file');
     this.errorMessage.set('');
   }
 
@@ -99,6 +98,8 @@ export class ProyectoComponent {
   removeAttachment(): void {
     if (this.rejectChangeWhileAnalyzing()) return;
     this.selectedAttachment.set(null);
+    this.clearPicker('file');
+    this.clearPicker('folder');
     this.analysisReport.set(null);
     this.sessionStore.clear();
     this.errorMessage.set('');
@@ -177,13 +178,13 @@ export class ProyectoComponent {
     return true;
   }
 
-  resultsLink(): string {
-    const prefix = this.router.url.split(/[?#]/)[0].split(/\/codigo-fuente(?:\/|$)/)[0];
-    return `${prefix}/analisis/reglas`;
-  }
-
   private resetDragState(): void {
     this.dragDepth = 0;
     this.isDragging.set(false);
+  }
+
+  private clearPicker(kind: 'file' | 'folder'): void {
+    const picker = kind === 'file' ? this.filePicker() : this.folderPicker();
+    if (picker) picker.nativeElement.value = '';
   }
 }

@@ -2,9 +2,9 @@ import { parse, type CstNode } from 'java-parser';
 
 export type Resolution = 'OBSERVED' | 'INFERRED' | 'UNRESOLVED';
 export type JavaEvidence = { path: string; startLine: number; endLine: number; snippet: string; method: 'CST' };
-export type JavaComponent = { id: string; name: string; packageName: string; kind: string; path: string; startLine: number; endLine: number; annotations: string[]; extends: string; implements: string[]; fields: { name: string; type: string }[]; evidence: JavaEvidence };
+export type JavaComponent = { id: string; name: string; packageName: string; kind: string; path: string; startLine: number; endLine: number; annotations: string[]; annotationSources?: string[]; extends: string; implements: string[]; fields: { name: string; type: string }[]; evidence: JavaEvidence };
 export type JavaCondition = { id: string; kind: string; expression: string; evidence: JavaEvidence };
-export type JavaMethod = { id: string; classId: string; className: string; name: string; parameters: string[]; returnType: string; visibility: string; entryPoint: boolean; annotations: string[]; path: string; startLine: number; endLine: number; evidence: JavaEvidence; conditions: JavaCondition[]; calls: JavaCall[] };
+export type JavaMethod = { id: string; classId: string; className: string; name: string; parameters: string[]; returnType: string; visibility: string; entryPoint: boolean; annotations: string[]; annotationSources?: string[]; path: string; startLine: number; endLine: number; evidence: JavaEvidence; conditions: JavaCondition[]; calls: JavaCall[] };
 export type JavaCall = { id: string; source: string; target: string | null; name: string; receiver: string; arity: number; resolution: Resolution; evidence: JavaEvidence; reason: string };
 export type JavaAnalysis = { components: JavaComponent[]; methods: JavaMethod[]; calls: JavaCall[]; errors: { path: string; detail: string }[]; limitations: string[] };
 
@@ -26,6 +26,11 @@ function evidence(node: CstNode, path: string, source: string): JavaEvidence {
 function annotations(node: CstNode, source: string): string[] {
   return children(node).filter(child => /Modifier$/.test(child.name)).flatMap(child => descendants(child, 'annotation')).map(child => text(direct(child, 'typeName'), source));
 }
+function annotationSources(node: CstNode, source: string): string[] {
+  return children(node).filter(child => /Modifier$/.test(child.name))
+    .flatMap(child => descendants(child, 'annotation')).map(child => text(child, source));
+}
+
 function componentKind(name: string, annotationNames: string[], parent: string): string {
   if (/Servlet$/.test(name) || /Servlet$/.test(parent)) return 'Servlet';
   if (annotationNames.some(value => /Controller$/.test(value)) || /Controller$/.test(name)) return 'Controller';
@@ -50,7 +55,7 @@ export function parseJavaFile(source: string, path: string): JavaAnalysis {
     const annotationNames = parentNode ? annotations(parentNode, source) : [];
     const parent = text(direct(node, 'classExtends'), source).replace(/^extends\s+/, '').trim();
     const implemented = text(direct(node, 'classImplements'), source).replace(/^implements\s+/, '').split(',').map(value => value.trim()).filter(Boolean);
-    const component: JavaComponent = { id: `class:${path}:${node.location.startLine}:${name}`, name, packageName, kind: componentKind(name, annotationNames, parent), path, startLine: node.location.startLine, endLine: node.location.endLine, annotations: annotationNames, extends: parent, implements: implemented, fields: [], evidence: evidence(node, path, source) };
+    const component: JavaComponent = { id: `class:${path}:${node.location.startLine}:${name}`, name, packageName, kind: componentKind(name, annotationNames, parent), path, startLine: node.location.startLine, endLine: node.location.endLine, annotations: annotationNames, annotationSources: parentNode ? annotationSources(parentNode, source) : [], extends: parent, implements: implemented, fields: [], evidence: evidence(node, path, source) };
     result.components.push(component);
   }
   for (const component of result.components) {
@@ -72,8 +77,8 @@ export function parseJavaFile(source: string, path: string): JavaAnalysis {
       const parameters = descendants(declarator, 'formalParameter').map(param => text(param, source));
       const annotationNames = annotations(node, source);
       const signature = `${name}(${parameters.join(',')})`;
-      const method: JavaMethod = { id: `method:${component.id}:${signature}:${node.location.startLine}`, classId: component.id, className: component.name, name, parameters, returnType: text(direct(header, 'result'), source), visibility: /\b(public|private|protected)\b/.exec(text(node, source).slice(0, 120))?.[1] ?? 'package', annotations: annotationNames,
-        entryPoint: (component.kind === 'Servlet' && /^(?:service|doGet|doPost|doPut|doDelete|doPatch)$/.test(name)) || annotationNames.some(value => /^(?:RequestMapping|GetMapping|PostMapping|PutMapping|DeleteMapping|PatchMapping|GET|POST|PUT|DELETE|Path)$/.test(value)),
+      const method: JavaMethod = { id: `method:${component.id}:${signature}:${node.location.startLine}`, classId: component.id, className: component.name, name, parameters, returnType: text(direct(header, 'result'), source), visibility: /\b(public|private|protected)\b/.exec(text(node, source).slice(0, 120))?.[1] ?? 'package', annotations: annotationNames, annotationSources: annotationSources(node, source),
+        entryPoint: (component.kind === 'Servlet' && /^(?:service|doGet|doPost|doPut|doDelete|doPatch|doHead|doOptions|doTrace)$/.test(name)) || annotationNames.some(value => /^(?:RequestMapping|GetMapping|PostMapping|PutMapping|DeleteMapping|PatchMapping|HeadMapping|OptionsMapping|GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS|Path)$/.test(value)),
         path, startLine: node.location.startLine, endLine: node.location.endLine, evidence: evidence(node, path, source), conditions: [], calls: [] };
       const body = direct(node, 'methodBody');
       if (body) {

@@ -1,10 +1,10 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { AnalysisModuleComponent } from '../../../shared/analysis-module.component';
+import { SecurityDashboardComponent } from './security-dashboard.component';
 
 @Component({
   selector: 'app-mf-vulnerabilidades',
-  imports: [AnalysisModuleComponent],
+  imports: [SecurityDashboardComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: '<app-mf-analysis-module section="vulnerabilidades" />'
+  template: '<app-mf-security-dashboard />'
 })
 export class VulnerabilidadesComponent {}
