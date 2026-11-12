@@ -77,8 +77,10 @@ export function parseJavaFile(source: string, path: string): JavaAnalysis {
         path, startLine: node.location.startLine, endLine: node.location.endLine, evidence: evidence(node, path, source), conditions: [], calls: [] };
       const body = direct(node, 'methodBody');
       if (body) {
-        for (const kind of ['ifStatement', 'switchStatement', 'basicForStatement', 'enhancedForStatement', 'whileStatement', 'tryStatement', 'catchClause', 'returnStatement', 'throwStatement']) {
+        for (const kind of ['ifStatement', 'switchStatement', 'basicForStatement', 'enhancedForStatement', 'whileStatement', 'doStatement', 'tryStatement', 'catchClause', 'returnStatement', 'throwStatement', 'conditionalExpression']) {
           for (const part of descendants(body, kind)) {
+            // Every expression is wrapped in conditionalExpression; only ternaries carry a QuestionMark.
+            if (kind === 'conditionalExpression' && !part.children['QuestionMark']) continue;
             const expression = direct(part, 'expression');
             method.conditions.push({ id: `control:${method.id}:${kind}:${part.location.startOffset}`, kind, expression: (expression ? text(expression, source) : text(part, source)).slice(0, 500), evidence: evidence(part, path, source) });
           }
@@ -87,7 +89,8 @@ export function parseJavaFile(source: string, path: string): JavaAnalysis {
           const suffix = children(primary).find(child => child.name === 'primarySuffix' && direct(child, 'methodInvocationSuffix'));
           if (!suffix) continue;
           const prefix = direct(primary, 'primaryPrefix');
-          const raw = text(prefix, source).trim();
+          // `this.name(...)` keeps `name` in a primarySuffix, so include the suffixes before the invocation.
+          const raw = prefix ? source.slice(prefix.location.startOffset, suffix.location.startOffset).replace(/\s+/g, '') : '';
           if (!/^(?:this\.)?[\w$]+(?:\.[\w$]+)*$/.test(raw)) continue;
           const parts = raw.split('.');
           const callName = parts.pop()!;
@@ -125,6 +128,56 @@ export function resolveJavaAnalysis(parts: JavaAnalysis[]): JavaAnalysis {
   }
   result.calls = result.methods.flatMap(method => method.calls);
   return result;
+}
+
+export type RecursionCycle = { methods: JavaMethod[]; calls: JavaCall[] };
+
+const BRANCHING_KINDS = new Set(['ifStatement', 'switchStatement', 'basicForStatement', 'enhancedForStatement', 'whileStatement', 'doStatement', 'catchClause', 'conditionalExpression']);
+
+function hasBranching(method: JavaMethod): boolean {
+  // `&&` and `||` short-circuit and can stop a recursive call without an explicit statement.
+  return method.conditions.some(condition => BRANCHING_KINDS.has(condition.kind)) || /&&|\|\|/.test(method.evidence.snippet);
+}
+
+/**
+ * Cycles of resolved calls (direct or mutual recursion) in which no method has a branch that could stop
+ * the recursion. Only INFERRED calls are followed, so unresolved or ambiguous calls never create a cycle.
+ */
+export function recursionWithoutExit(analysis: JavaAnalysis): RecursionCycle[] {
+  const byId = new Map(analysis.methods.map(method => [method.id, method]));
+  const targets = (method: JavaMethod) => method.calls.filter(call => call.target && byId.has(call.target)).map(call => call.target!);
+  // Tarjan's strongly connected components.
+  const index = new Map<string, number>();
+  const low = new Map<string, number>();
+  const stack: string[] = [];
+  const onStack = new Set<string>();
+  const components: string[][] = [];
+  let counter = 0;
+  const visit = (id: string) => {
+    index.set(id, counter); low.set(id, counter); counter++;
+    stack.push(id); onStack.add(id);
+    for (const next of targets(byId.get(id)!)) {
+      if (!index.has(next)) { visit(next); low.set(id, Math.min(low.get(id)!, low.get(next)!)); }
+      else if (onStack.has(next)) low.set(id, Math.min(low.get(id)!, index.get(next)!));
+    }
+    if (low.get(id) === index.get(id)) {
+      const component: string[] = [];
+      let member: string;
+      do { member = stack.pop()!; onStack.delete(member); component.push(member); } while (member !== id);
+      components.push(component);
+    }
+  };
+  for (const method of analysis.methods) if (!index.has(method.id)) visit(method.id);
+
+  const cycles: RecursionCycle[] = [];
+  for (const component of components) {
+    const members = new Set(component);
+    const methods = analysis.methods.filter(method => members.has(method.id));
+    const calls = methods.flatMap(method => method.calls.filter(call => call.target !== null && members.has(call.target)));
+    if (!calls.length || methods.some(hasBranching)) continue;
+    cycles.push({ methods, calls });
+  }
+  return cycles;
 }
 
 export function reachableMethods(analysis: JavaAnalysis, entryId: string, maxDepth = 8): { method: JavaMethod; depth: number }[] {

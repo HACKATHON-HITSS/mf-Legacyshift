@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "start:analysis-api": "node --env-file-if-exists=.env server/huawei-server.mjs",
+    "start:analysis-api:mock": "node server/huawei-server.mjs --mock",
     "test:analysis-api": "node --test server/huawei-server.test.mjs",
     "ng": "ng",
     "dev": "ng serve",

@@ -30,9 +30,10 @@ Al terminar, **Ver matriz de reglas y resultados** abre la matriz del proyecto. 
 - **Logica:** diagrama de bloques PL/SQL simples con instrucciones de una linea y hasta una condicion IF/ELSE sin anidacion, con referencias de linea y ramas sustentadas por el codigo. No reconstruye bucles, excepciones, retornos tempranos, llamadas entre archivos ni flujos de otros lenguajes. Los bloques no compatibles no se dibujan.
 - **Entradas/salidas:** WSDL 1.1, anotaciones/rutas HTTP compatibles y operaciones SQL observadas; no resuelve todos los esquemas.
 - **Datos hardcodeados:** candidatos del analizador local, sin mostrar valores.
-- **Deuda tecnica:** marcadores TODO/FIXME/HACK y catch vacios compatibles. No prueba codigo muerto ni calcula complejidad global.
+- **Deuda tecnica:** marcadores TODO/FIXME/HACK, catch vacios compatibles y recursion Java (directa o mutua) sin condicion de salida, detectada en ciclos de llamadas resueltas cuyos metodos no tienen ramas, bucles, ternarios ni `&&`/`||`. No prueba codigo muerto ni calcula complejidad global.
 - **Riesgos:** operaciones sensibles, hashes debiles y configuracion sensible literal. No confirma explotabilidad ni ausencia de vulnerabilidades.
 - **Dependencias:** declaraciones e imports; no decide automaticamente cuales migrar ni comprueba compatibilidad.
+- **Procedimientos almacenados en properties:** las entradas de `.properties` cuyo valor parece un SP (`PAQUETE.USP_X`, o claves `sp.*` con nombre calificado) se buscan en Java, XML y SQL: clave literal (`getProperty("sp.x")`), constantes que guardan la clave y sus usos, placeholders `${sp.x}` y el nombre literal del SP, sin contar comentarios. Cada SP queda como **invocado** (el metodo que usa la clave hace `prepareCall`, `CallableStatement`, `StoredProcedure` o similar), **referenciado sin llamada directa** o **sin uso**. Aparece en Dependencias; las invocaciones van a Entradas/salidas y los no invocados a Deuda tecnica. No se comprueba que el valor leido sea el que llega a la llamada ni se siguen claves construidas dinamicamente.
 - **Arquitectura actual:** mapa de grupos por funcion estimada e inventario de archivos. No inventa relaciones entre componentes.
 
 En decisiones se pueden aprobar/descartar reglas y registrar observaciones, elegir tecnologia y justificarla. La arquitectura objetivo muestra un borrador de capas cuando hay tecnologia y al menos una regla aprobada. Se exportan informe JSON, matriz CSV y documentacion Markdown con el estado de revision. El borrador no sustituye un diseno validado.
@@ -47,6 +48,15 @@ El frontend envia la llave introducida en el formulario al servicio local, que l
 4. Analiza un proyecto y usa **Consultar Huawei** en un modulo o en el chat de decisiones.
 
 Como alternativa, copia `.env.example` a `.env` y configura `HUAWEI_MAAS_API_KEY` y `HUAWEI_MAAS_MODEL` en el servidor. Esa configuracion aparece como «IA configurada» hasta que se verifique. El formulario acepta solo la URL oficial especificada; no envia llaves a URLs arbitrarias.
+
+### Modo mock (sin llave de Huawei)
+
+`npm run start:analysis-api:mock` (o `HUAWEI_MAAS_MOCK=true`) levanta el mismo servicio en el puerto 4212 con la conexion ya verificada como `mock-legacyshift`, sin llamadas de red ni consumo de tokens. `server/huawei-mock.mjs` genera las respuestas a partir del contexto recibido:
+
+- **Generar analisis de negocio:** resumen, reglas y pendientes con el esquema de la matriz, derivados por patrones del metodo enviado (`if`/`else`, ternarios, `switch`, `throw`, asignaciones de estado, SQL embebido y `{call ...}`). Cada `fragmento_codigo` se copia del metodo, por lo que supera la verificacion del frontend. Los codigos se resuelven con el glosario (`POS = Postpago; PRE = Prepago`) o quedan como «Por confirmar» y pasan a pendientes.
+- **Consultar Huawei y chat:** texto con resumen, siguientes pasos y pendientes a partir de los hallazgos, la regla o el grafo enviados.
+
+Todas las respuestas indican «Datos simulados (modo mock, sin IA)». Para probarlo, analiza la carpeta `samples/legacy-telco` y pega el contenido de `samples/legacy-telco/GLOSARIO.txt` en el glosario.
 
 La consulta envia hasta 30 hallazgos del modulo (o del informe en el chat, priorizados por palabras de la pregunta), 15 dependencias y 10 reglas aprobadas. No envia los archivos completos. El contexto puede ser parcial y los literales de las evidencias estan omitidos. La respuesta se presenta como texto para revision y no modifica ni aprueba reglas automaticamente. El chat conserva las consultas durante la sesion; sus respuestas no forman parte de la matriz ni del export.
 

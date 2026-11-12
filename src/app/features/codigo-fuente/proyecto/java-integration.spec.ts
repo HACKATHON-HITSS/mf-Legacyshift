@@ -23,5 +23,10 @@ describe('Análisis Java integrado en el informe', () => {
     const rule = report.businessRules.find(item => item.artifactType === 'JAVA')!;
     expect(rule).toMatchObject({ path: 'ClienteServlet.java', startLine: 5, condition: 'id > 0', discoveryMethod: 'Árbol sintáctico Java' });
     expect(rule.snippet).toContain('servicio.consultar(id)');
+    const buscar = report.java.methods.find(method => method.name === 'buscar')!;
+    expect(buscar.calls[0]).toMatchObject({ name: 'buscar', receiver: 'this', resolution: 'INFERRED', target: buscar.id });
+    expect(report.findings.filter(item => item.category === 'deuda-tecnica')).toEqual([
+      expect.objectContaining({ path: 'ClienteDAO.java', line: 3, title: 'Recursión sin condición de salida', severity: 'Alta', condition: 'ClienteDAO.buscar se invoca a sí mismo' })
+    ]);
   });
 });
