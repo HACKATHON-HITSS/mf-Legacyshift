@@ -121,3 +121,14 @@ test('disconnect wins over a pending connection check', async () => {
     assert.equal((await (await fetch(connectionUrl)).json()).configured, false);
   });
 });
+test('mock mode answers locally without calling Huawei and reports a verified connection', async () => {
+  await withServer({ mock: true, fetchImpl: () => { throw new Error('Must not call'); } }, async url => {
+    const connection = await (await fetch(`${url}/connection`)).json();
+    assert.deepEqual([connection.configured, connection.verified, connection.model], [true, true, 'mock-legacyshift']);
+    const answer = await (await fetch(url, request)).json();
+    assert.match(answer.answer, /Datos simulados/);
+    const discovery = await fetch(url, { ...request, body: JSON.stringify({ question: 'Actúa como analista de sistemas legados Java', context: { metodo: { clase: 'Pago', nombre: 'pagar', linea: 1, fragmento: 'void pagar(int deuda) {\n  if (deuda > 0) {\n    throw new BusinessException("Deuda pendiente");\n  }\n}' } } }) });
+    const parsed = JSON.parse((await discovery.json()).answer);
+    assert.equal(parsed.reglas[0].descripcion, 'Si deuda es mayor que 0, entonces se rechaza la operación (BusinessException) con el mensaje "Deuda pendiente".');
+  });
+});

@@ -1,0 +1,1 @@
+POS = Postpago; PRE = Prepago; ACT = Activa; PEN = Pendiente de validación; REC = Rechazada; WEB = Canal web; PRESENCIAL = Canal tienda; 450 = Score crediticio mínimo para postpago; 5 = Máximo de líneas por cliente / cargo mínimo

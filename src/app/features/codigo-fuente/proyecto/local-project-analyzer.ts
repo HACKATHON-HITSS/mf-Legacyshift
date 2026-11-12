@@ -1,7 +1,8 @@
-import { extractCodeFindings, CodeFinding } from './project-findings';
+import { extractCodeFindings, CodeFinding, redactEvidence } from './project-findings';
 import { BusinessRule, extractBusinessRules } from './business-rules';
 import { ProcessFlow, extractProcessFlows } from './process-flow';
-import { JavaAnalysis, emptyJavaAnalysis, parseJavaFile, resolveJavaAnalysis } from './java-analysis';
+import { JavaAnalysis, emptyJavaAnalysis, parseJavaFile, recursionWithoutExit, resolveJavaAnalysis } from './java-analysis';
+import { ConfiguredProcedure, ProcedureAnalysis, ProcedureSource, analyzeConfiguredProcedures, describeProcedure, extractConfiguredProcedures } from './stored-procedures';
 
 export type FileAnalysis = {
   sha256?: string | null;
@@ -32,6 +33,7 @@ export type LocalAnalysisReport = {
   imports: AnalysisReference[];
   hardcoded: AnalysisReference[];
   operations: { path: string; name: string; input: string; output: string }[];
+  storedProcedures: ProcedureAnalysis[];
   analyzed: number;
   skipped: number;
   errors: number;
@@ -70,13 +72,15 @@ export async function analyzeLocalProject(
   onProgress: (processed: number) => void
 ): Promise<LocalAnalysisReport> {
   const report: LocalAnalysisReport = {
-    java: emptyJavaAnalysis(), processFlows: [], artifactVersion: null, businessRules: [], findings: [], files: [], languages: [], dependencies: [], imports: [], hardcoded: [], operations: [],
+    java: emptyJavaAnalysis(), processFlows: [], artifactVersion: null, businessRules: [], findings: [], files: [], languages: [], dependencies: [], imports: [], hardcoded: [], operations: [], storedProcedures: [],
     analyzed: 0, skipped: 0, errors: 0, totalLines: 0
   };
   const languages = new Map<string, { name: string; files: number; lines: number }>();
   const packages = new Set<string>();
   const imports: AnalysisReference[] = [];
   const javaParts: JavaAnalysis[] = [];
+  const procedures: ConfiguredProcedure[] = [];
+  const procedureSources: ProcedureSource[] = [];
 
   for (const [index, file] of files.entries()) {
     const path = file.webkitRelativePath || file.name;
@@ -97,7 +101,7 @@ export async function analyzeLocalProject(
       } else if (file.size > MAX_FILE_BYTES) {
         entry.detail = 'Supera el límite local de 5 MB por archivo.';
       } else {
-        await analyzeFile(file, entry, report, languages, packages, imports, javaParts);
+        await analyzeFile(file, entry, report, languages, packages, imports, javaParts, procedures, procedureSources);
       }
     }
     if (entry.status === 'analyzed') report.analyzed++;
@@ -121,6 +125,41 @@ export async function analyzeLocalProject(
       evidenceId: `EV:${condition.id}`, artifactType: 'JAVA', locationType: 'LINE', startLine: condition.evidence.startLine,
       endLine: condition.evidence.endLine, xmlNodePath: ''
     });
+  }
+  for (const [index, cycle] of recursionWithoutExit(report.java).entries()) {
+    const call = cycle.calls[0];
+    const names = cycle.methods.map(method => `${method.className}.${method.name}`);
+    report.findings.push({
+      id: `deuda-tecnica:${call.evidence.path}:${call.evidence.startLine}:recursion-${index}`, category: 'deuda-tecnica',
+      path: call.evidence.path, line: call.evidence.startLine,
+      title: names.length === 1 ? 'Recursión sin condición de salida' : 'Recursión mutua sin condición de salida',
+      condition: names.length === 1 ? `${names[0]} se invoca a sí mismo` : `Ciclo de llamadas: ${names.join(' → ')} → ${names[0]}`,
+      action: 'Añadir un caso base o revisar si la llamada es intencional', evidence: redactEvidence(call.evidence.snippet),
+      severity: 'Alta',
+      limitation: 'Basado en llamadas resueltas por tipo declarado, sin ramas, bucles, ternarios ni && / || en los métodos del ciclo. No considera excepciones de otras llamadas, estado externo ni código dentro de lambdas.'
+    });
+  }
+  report.storedProcedures = analyzeConfiguredProcedures(procedures, procedureSources, report.java);
+  for (const [index, item] of report.storedProcedures.entries()) {
+    const status = { INVOCADO: 'invocado', LEIDO_SIN_LLAMADA: 'referenciado sin llamada directa', SIN_REFERENCIAS: 'sin uso' }[item.status];
+    report.dependencies.push({ path: item.path, line: item.line, name: `${item.procedure} (clave ${item.key})`, kind: `Procedimiento almacenado configurado en properties, ${status}. ${describeProcedure(item)}.` });
+    for (const usage of item.usages.filter(value => value.invokes)) {
+      report.findings.push({
+        id: `entradas-salidas:${usage.path}:${usage.line}:sp-${index}`, category: 'entradas-salidas', path: usage.path, line: usage.line,
+        title: `Invocación de ${item.procedure}`, condition: `Clave ${item.key} (${item.path}:${item.line}) · ${usage.kind}${usage.constant ? ` ${usage.constant}` : ''}`,
+        action: `Llamada JDBC a procedimiento almacenado en ${usage.method}`, evidence: redactEvidence(usage.evidence), severity: 'Informativa',
+        limitation: 'La clave se usa en un método que realiza una llamada a procedimiento; no se verifica que el valor leído sea el mismo que se pasa a esa llamada.'
+      });
+    }
+    if (item.status !== 'INVOCADO') {
+      report.findings.push({
+        id: `deuda-tecnica:${item.path}:${item.line}:sp-${index}`, category: 'deuda-tecnica', path: item.path, line: item.line,
+        title: item.status === 'SIN_REFERENCIAS' ? 'Procedimiento configurado sin uso' : 'Procedimiento configurado sin invocación directa',
+        condition: `${item.key} = ${item.procedure}`, action: item.status === 'SIN_REFERENCIAS' ? 'Confirmar si la configuración es obsoleta antes de migrarla' : 'Seguir el valor leído hasta la llamada JDBC',
+        evidence: describeProcedure(item), severity: 'Media',
+        limitation: 'Solo se buscan la clave literal, constantes que la contienen, ${clave} y el nombre del SP en los archivos analizados. Claves construidas dinámicamente, reflexión o código fuera de la selección no se detectan.'
+      });
+    }
   }
   report.imports = imports.filter(item => ![...packages].some(pkg => item.name.startsWith(`${pkg}.`)));
   report.languages = [...languages.values()].sort((a, b) => b.files - a.files);
@@ -147,7 +186,9 @@ async function analyzeFile(
   languages: Map<string, { name: string; files: number; lines: number }>,
   packages: Set<string>,
   imports: AnalysisReference[],
-  javaParts: JavaAnalysis[]
+  javaParts: JavaAnalysis[],
+  procedures: ConfiguredProcedure[],
+  procedureSources: ProcedureSource[]
 ): Promise<void> {
   let bytes: Uint8Array;
   try {
@@ -184,6 +225,9 @@ async function analyzeFile(
     javaParts.push(parsed);
     if (parsed.errors.length) entry.detail = [entry.detail, parsed.errors[0].detail].filter(Boolean).join(' ');
   }
+  if (entry.language === 'Properties') procedures.push(...extractConfiguredProcedures(text, entry.path));
+  // Sources are kept until the end of the analysis to search for uses of procedures configured in any file.
+  if (['Java', 'XML', 'JDeveloper', 'SQL / PL/SQL'].includes(entry.language)) procedureSources.push({ path: entry.path, language: entry.language, text });
   report.processFlows.push(...extractProcessFlows(text, entry.path, entry.language));
   const rules = extractBusinessRules(text, entry.path);
   for (const rule of rules) rule.artifactHash = entry.sha256;
