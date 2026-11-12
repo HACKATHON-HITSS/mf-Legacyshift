@@ -1,0 +1,103 @@
+{
+  "planHash": "c60a5d01816a26baf9b0a8f85055b2104c3b5f6fa3fdca279e6e83c7c985911d",
+  "phase": "standalone",
+  "recordedAtUtc": "2026-11-11T23:03:12.2064199Z",
+  "retryCount": 2,
+  "resetBaseline": false,
+  "complete": true,
+  "result": {
+    "setupSucceeded": true,
+    "setupDurationMs": 0,
+    "setupFailureOutput": null,
+    "assertions": [
+      {
+        "name": "angular-build",
+        "kind": "process",
+        "verificationMethod": "exit-code",
+        "passed": true,
+        "timedOut": false,
+        "skipped": false,
+        "skippedReason": null,
+        "exitCode": 0,
+        "outputSample": "\r\n\u003E mf-PR-Guardian-AI@1.0.2 build\r\n\u003E ng build \u0026\u0026 node scripts/generate-remote-assets.mjs\r\n\r\n\u001B[1m\u001B[33m WARN  [shared-mappings] Internal lib \u0027@mf-PR-Guardian-AI/app\u0027 does not contain an entryPoint (barrel file).\u001B[39m\u001B[22m\r\n\u001B[1m\u001B[33m WARN  [shared-mappings] Internal lib \u0027@mf-PR-Guardian-AI/environments\u0027 does not contain an entryPoint (barrel file).\u001B[39m\u001B[22m\r\n\u001B[1m\u001B[33m WARN  [shared-mappings] Internal lib \u0027@mf-PR-Guardian-AI/public\u0027 does not contain an entryPoint (barrel file).\u001B[39m\u001B[22m\r\n INFO  Building federation artefacts\r\n INFO  Preparing shared npm packages for the platform browser-shared\r\n NOTE  This only needs to be done once, as results are cached\r\n NOTE  Skip packages you don\u0027t want to share in your federation config\r\n\u001B[33m\u003E\u001B[39m Building...\r\n\u001B[32m\u221A\u001B[39m Building...\r\n\u001B[1mInitial chunk files\u001B[22m  \u001B[2m | \u001B[22m\u001B[1mNames\u001B[22m                       \u001B[2m | \u001B[22m \u001B[1mRaw size\u001B[22m\u001B[2m | \u001B[22m\u001B[1mEstimated transfer size\u001B[22m\r\n\u001B[32mpolyfills-G7GBCUTJ.js\u001B[39m\u001B[2m | \u001B[22m\u001B[2mpolyfills\u001B[22m                   \u001B[2m | \u001B[22m \u001B[36m36.72 kB\u001B[39m\u001B[2m | \u001B[22m               \u001B[36m11.96 kB\u001B[39m\r\n\u001B[32mstyles-HQYL75TP.css\u001B[39m  \u001B[2m | \u001B[22m\u001B[2mstyles\u001B[22m                      \u001B[2m | \u001B[22m  \u001B[36m4.21 kB\u001B[39m\u001B[2m | \u001B[22m                \u001B[36m1.31 kB\u001B[39m\r\n\u001B[32mmain-R7BK3RBR.js\u001B[39m     \u001B[2m | \u001B[22m\u001B[2mmain\u001B[22m                        \u001B[2m | \u001B[22m  \u001B[36m3.22 kB\u001B[39m\u001B[2m | \u001B[22m                \u001B[36m1.34 kB\u001B[39m\r\n\u001B[32mchunk-2NFLSA4Y.js\u001B[39m    \u001B[2m | \u001B[22m\u001B[2m-\u001B[22m                           \u001B[2m | \u001B[22m\u001B[36m449 bytes\u001B[39m\u001B[2m | \u001B[22m              \u001B[36m449 bytes\u001B[39m\r\n\r\n\u001B[1m \u001B[22m                    \u001B[2m | \u001B[22m\u001B[1mInitial total\u001B[22m               \u001B[2m | \u001B[22m \u001B[1m44.60 kB\u001B[22m\u001B[2m | \u001B[22m               \u001B[1m15.07 kB\u001B[22m\r\n\r\n\u001B[1mLazy chunk files\u001B[22m     \u001B[2m | \u001B[22m\u001B[1mNames\u001B[22m                       \u001B[2m | \u001B[22m \u001B[1mRaw size\u001B[22m\u001B[2m | \u001B[22m\u001B[1mEstimated transfer size\u001B[22m\r\n\u001B[32mchunk-FNCFSB4Y.js\u001B[39m    \u001B[2m | \u001B[22m\u001B[2mproyecto-component\u001B[22m          \u001B[2m | \u001B[22m \u001B[36m12.39 kB\u001B[39m\u001B[2m | \u001B[22m                \u001B[36m3.07 kB\u001B[39m\r\n\u001B[32mchunk-6Z2RLLJC.js\u001B[39m    \u001B[2m | \u001B[22m\u001B[2mbootstrap\u001B[22m                   \u001B[2m | \u001B[22m  \u001B[36m6.49 kB\u001B[39m\u001B[2m | \u001B[22m                \u001B[36m1.37 kB\u001B[39m\r\n\u001B[32mchunk-7A7SUVEV.js\u001B[39m    \u001B[2m | \u001B[22m\u001B[2m-\u001B[22m                           \u001B[2m | \u001B[22m  \u001B[36m1.32 kB\u001B[39m\u001B[2m | \u001B[22m              \u001B[36m533 bytes\u001B[39m\r\n\u001B[32mchunk-5JKMW7TG.js\u001B[39m    \u001B[2m | \u001B[22m\u001B[2mdatos-hardcodeados-component\u001B[22m\u001B[2m | \u001B[22m\u001B[36m559 bytes\u001B[39m\u001B[2m | \u001B[22m              \u001B[36m559 bytes\u001B[39m\r\n\u001B[32mchunk-YI4J7EZ6.js\u001B[39m    \u001B[2m | \u001B[22m\u001B[2mdeuda-tecnica-component\u001B[22m     \u001B[2m | \u001B[22m\u001B[36m556 bytes\u001B[39m\u001B[2m | \u001B[22m              \u001B[36m556 bytes\u001B[39m\r\n\u001B[32mchunk-M66LX6KY.js\u001B[39m    \u001B[2m | \u001B[22m\u001B[2mcondiciones-component\u001B[22m       \u001B[2m | \u001B[22m\u001B[36m555 bytes\u001B[39m\u001B[2m | \u001B[22m              \u001B[36m555 bytes\u001B[39m\r\n\u001B[32mchunk-XSE7ZH7T.js\u001B[39m    \u001B[2m | \u001B[22m\u001B[2mvulnerabilidades-component\u001B[22m  \u001B[2m | \u001B[22m\u001B[36m554 bytes\u001B[39m\u001B[2m | \u001B[22m              \u001B[36m554 bytes\u001B[39m\r\n\u001B[32mchunk-DXMFEES4.js\u001B[39m    \u001B[2m | \u001B[22m\u001B[2marquitectura-component\u001B[22m      \u001B[2m | \u001B[22m\u001B[36m551 bytes\u001B[39m\u001B[2m | \u001B[22m              \u001B[36m551 bytes\u001B[39m\r\n\u001B[32mchunk-MDE4AQS4.js\u001B[39m    \u001B[2m | \u001B[22m\u001B[2mconfiguracion-component\u001B[22m     \u001B[2m | \u001B[22m\u001B[36m550 bytes\u001B[39m\u001B[2m | \u001B[22m              \u001B[36m550 bytes\u001B[39m\r\n\u001B[32mchunk-H44IG6JY.js\u001B[39m    \u001B[2m | \u001B[22m\u001B[2marquitectura-component\u001B[22m      \u001B[2m | \u001B[22m\u001B[36m550 bytes\u001B[39m\u001B[2m | \u001B[22m              \u001B[36m550 bytes\u001B[39m\r\n\u001B[32mchunk-RRNBP33T.js\u001B[39m    \u001B[2m | \u001B[22m\u001B[2maprobar-reglas-component\u001B[22m    \u001B[2m | \u001B[22m\u001B[36m547 bytes\u001B[39m\u001B[2m | \u001B[22m              \u001B[36m547 bytes\u001B[39m\r\n\u001B[32mchunk-5WHWXVYT.js\u001B[39m    \u001B[2m | \u001B[22m\u001B[2mentradas-salidas-component\u001B[22m  \u001B[2m | \u001B[22m\u001B[36m545 bytes\u001B[39m\u001B[2m | \u001B[22m              \u001B[36m545 bytes\u001B[39m\r\n\u001B[32mchunk-6SKFXSN4.js\u001B[39m    \u001B[2m | \u001B[22m\u001B[2mpull-requests-component\u001B[22m     \u001B[2m | \u001B[22m\u001B[36m544 bytes\u001B[39m\u001B[2m | \u001B[22m              \u001B[36m544 bytes\u001B[39m\r\n\u001B[32mchunk-D6XAQAS2.js\u001B[39m    \u001B[2m | \u001B[22m\u001B[2mexportar-component\u001B[22m          \u001B[2m | \u001B[22m\u001B[36m543 bytes\u001B[39m\u001B[2m | \u001B[22m              \u001B[36m543 bytes\u001B[39m\r\n\u2026[truncated]",
+        "durationMs": 12410
+      },
+      {
+        "name": "tests-pass",
+        "kind": "process",
+        "verificationMethod": "test-results",
+        "passed": true,
+        "timedOut": false,
+        "skipped": false,
+        "skippedReason": null,
+        "exitCode": 0,
+        "outputSample": "\r\n\u003E mf-PR-Guardian-AI@1.0.2 test\r\n\u003E vitest run --coverage proyecto.component.spec.ts workspace-page.component.spec.ts\r\n\r\n\r\n\u001B[1m\u001B[46m RUN \u001B[49m\u001B[22m \u001B[36mv3.2.7 \u001B[39m\u001B[90mD:/AA-BURO-DESARROLLO/HAKATON HITSS/mf-Legacyshift\u001B[39m\r\n      \u001B[2mCoverage enabled with \u001B[22m\u001B[33mv8\u001B[39m\r\n\r\n \u001B[32m\u2713\u001B[39m src/app/features/codigo-fuente/proyecto/proyecto.component.spec.ts \u001B[2m(\u001B[22m\u001B[2m4 tests\u001B[22m\u001B[2m)\u001B[22m\u001B[32m 185\u001B[2mms\u001B[22m\u001B[39m\r\n \u001B[32m\u2713\u001B[39m src/app/shared/workspace-page.component.spec.ts \u001B[2m(\u001B[22m\u001B[2m2 tests\u001B[22m\u001B[2m)\u001B[22m\u001B[33m 396\u001B[2mms\u001B[22m\u001B[39m\r\n   \u001B[33m\u001B[2m\u2713\u001B[22m\u001B[39m Legacyshift scaffold\u001B[2m \u003E \u001B[22mrenders all nine empty modules without business controls or external requests \u001B[33m 379\u001B[2mms\u001B[22m\u001B[39m\r\n\r\n\u001B[2m Test Files \u001B[22m \u001B[1m\u001B[32m2 passed\u001B[39m\u001B[22m\u001B[90m (2)\u001B[39m\r\n\u001B[2m      Tests \u001B[22m \u001B[1m\u001B[32m6 passed\u001B[39m\u001B[22m\u001B[90m (6)\u001B[39m\r\n\u001B[2m   Start at \u001B[22m 18:02:49\r\n\u001B[2m   Duration \u001B[22m 6.23s\u001B[2m (transform 913ms, setup 1.72s, collect 625ms, tests 581ms, environment 6.94s, prepare 527ms)\u001B[22m\r\n\r\n\u001B[34m % \u001B[39m\u001B[2mCoverage report from \u001B[22m\u001B[33mv8\u001B[39m\r\n-------------------|---------|----------|---------|---------|-------------------\r\nFile               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s \r\n-------------------|---------|----------|---------|---------|-------------------\r\nAll files          |   17.16 |     21.3 |   11.76 |   17.16 |                   \r\n mf-Legacyshift    |       0 |        0 |       0 |       0 |                   \r\n  ...ion.config.js |       0 |        0 |       0 |       0 | 1-20              \r\n  vitest.config.ts |       0 |        0 |       0 |       0 | 1-25              \r\n ...ian-AI/browser |       0 |     0.91 |    0.91 |       0 |                   \r\n  ...t-5DTZRTNG.js |       0 |        0 |       0 |       0 | 1                 \r\n  ...s-MPJ6FVAV.js |       0 |        0 |       0 |       0 | 1                 \r\n  ...P1-clH0yy-.js |       0 |        0 |       0 |       0 | 1-10              \r\n  ...Sp2c4HB1qM.js |       0 |        0 |       0 |       0 | 1-11              \r\n  ...sXvbVbh9uO.js |       0 |        0 |       0 |       0 | 1-13              \r\n  ...osCzTMOQ0U.js |       0 |        0 |       0 |       0 | 1-12              \r\n  ...rYTAAi6wIh.js |       0 |        0 |       0 |       0 | 1-93              \r\n  ...bwD0Sgj2F3.js |       0 |        0 |       0 |       0 | 1-57              \r\n  ...QHCZw2YD0w.js |       0 |        0 |       0 |       0 | 1                 \r\n  ...eh51g9Ca9A.js |       0 |        0 |       0 |       0 | 1-10              \r\n  ...Psqv0IoWtP.js |       0 |        0 |       0 |       0 | 1                 \r\n  ...GMkRZeXPjd.js |       0 |        0 |       0 |       0 | 1-10              \r\n  ...1vvC2ZqRHD.js |       0 |        0 |       0 |       0 | 1-10              \r\n  ...Y2PN1x5R8n.js |       0 |        0 |       0 |       0 | 1-10              \r\n  ...TTCWuBn0gg.js |       0 |        0 |       0 |       0 | 1-10              \r\n  ...zM6rM99dmx.js |       0 |        0 |       0 |       0 | 1-10              \r\n  ...UTZxZH4XgR.js |       0 |        0 |       0 |       0 | 1-10              \r\n  ...iDEk8Myul8.js |       0 |        0 |       0 |       0 | 1-10              \r\n  ...KhKpC4yTjL.js |       0 |        0 |       0 |       0 | 1-12              \r\n  ...t-ITFESS7X.js |       0 |        0 |       0 |       0 | 1                 \r\n  ...t-IW67CGVB.js |       0 |        0 |       0 |       0 | 1                 \r\n  ...t-OQNFSAHO.js |       0 |        0 |       0 |       0 | 1                 \r\n  ...t-QJDPBIWG.js |       0 |        0 |       0 |       0 | 1                 \r\n  ...t-64NUQYK7.js |       0 |        0 |       0 |       0 | 1                 \r\n  ...t-POUEG6V5.js |       0 |        0 |       0 |       0 | 1                 \r\n  ...t-H7G43UQ4.js |       0 |        0 |       0 |       0 | 1                 \r\n  ...k-2LXHLUOT.js |       0 |        0 |       0 |       0 | 1-10              \r\n  ...k-2NFLSA4Y.js |       0 |        0 |       0 |       0 | 1                 \r\n  ...k-3OUK6S32.js |       0 |        0 |       0 |       0 | 1-10              \r\n\n\u2026[truncated]",
+        "durationMs": 15803,
+        "testResults": {
+          "testFramework": "vitest",
+          "runnerDetectedFrom": "package_json",
+          "testsTotal": 6,
+          "testsPassed": 6,
+          "testsFailed": 0,
+          "testsSkipped": 0,
+          "parseFailed": false
+        }
+      },
+      {
+        "name": "project-route-served",
+        "kind": "http-probe",
+        "verificationMethod": "http-status",
+        "passed": true,
+        "timedOut": false,
+        "skipped": false,
+        "skippedReason": null,
+        "exitCode": null,
+        "outputSample": "HTTP 200\n\u003C!doctype html\u003E\r\n\u003Chtml lang=\u0022es-CO\u0022\u003E\r\n\r\n\u003Chead\u003E\n  \u003Cscript type=\u0022module\u0022 src=\u0022/@vite/client\u0022\u003E\u003C/script\u003E\n\r\n    \u003Cmeta charset=\u0022utf-8\u0022\u003E\r\n    \u003Ctitle\u003ELegacyshift\u003C/title\u003E\r\n    \u003Cbase href=\u0022/\u0022\u003E\r\n    \u003Cmeta name=\u0022viewport\u0022 content=\u0022width=device-width, initial-scale=1\u0022\u003E\r\n    \u003Clink rel=\u0022icon\u0022 type=\u0022image/png\u0022 href=\u0022favicon.png\u0022\u003E\r\n\u003Clink rel=\u0022stylesheet\u0022 href=\u0022styles.css\u0022\u003E\u003C/head\u003E\r\n\r\n\u003Cbody\u003E\n\t\t\n\u003Cscript type=\u0022esms-options\u0022\u003E{\u0022shimMode\u0022:true}\u003C/script\u003E\n\r\n    \u003Capp-mf-pr-guardian-ai-root\u003E\u003C/app-mf-pr-guardian-ai-root\u003E\r\n\u003Cscript type=\u0022module\u0022 src=\u0022polyfills.js\u0022\u003E\u003C/script\u003E\u003Cscript type=\u0022module-shim\u0022 src=\u0022main.js\u0022\u003E\u003C/script\u003E\u003C/body\u003E\r\n\r\n\u003C/html\u003E\n--- server output ---\n\r\n\u003E mf-PR-Guardian-AI@1.0.2 dev\r\n\u003E ng serve --port 4311\r\n\r\n\u001B[1m\u001B[33m WARN  [shared-mappings] Internal lib \u0027@mf-PR-Guardian-AI/app\u0027 does not contain an entryPoint (barrel file).\u001B[39m\u001B[22m\r\n\u001B[1m\u001B[33m WARN  [shared-mappings] Internal lib \u0027@mf-PR-Guardian-AI/environments\u0027 does not contain an entryPoint (barrel file).\u001B[39m\u001B[22m\r\n\u001B[1m\u001B[33m WARN  [shared-mappings] Internal lib \u0027@mf-PR-Guardian-AI/public\u0027 does not contain an entryPoint (barrel file).\u001B[39m\u001B[22m\r\n INFO  [Federation SSE] Local reloader initialized with endpoint /@angular-architects/native-federation:build-notifications\r\n INFO  Building federation artefacts\r\n INFO  Preparing shared npm packages for the platform browser-shared\r\n NOTE  This only needs to be done once, as results are cached\r\n NOTE  Skip packages you don\u0027t want to share in your federation config\r\n\u001B[33m\u003E\u001B[39m Building...\r\n\u001B[32m\u221A\u001B[39m Building...\r\n\u001B[1mInitial chunk files\u001B[22m\u001B[2m | \u001B[22m\u001B[1mNames\u001B[22m                       \u001B[2m | \u001B[22m \u001B[1mRaw size\u001B[22m\r\n\u001B[32mstyles.css\u001B[39m         \u001B[2m | \u001B[22m\u001B[2mstyles\u001B[22m                      \u001B[2m | \u001B[22m  \u001B[36m5.59 kB\u001B[39m\u001B[2m | \u001B[22m\r\n\u001B[32mmain.js\u001B[39m            \u001B[2m | \u001B[22m\u001B[2mmain\u001B[22m                        \u001B[2m | \u001B[22m\u001B[36m250 bytes\u001B[39m\u001B[2m | \u001B[22m\r\n\u001B[32mpolyfills.js\u001B[39m       \u001B[2m | \u001B[22m\u001B[2mpolyfills\u001B[22m                   \u001B[2m | \u001B[22m\u001B[36m103 bytes\u001B[39m\u001B[2m | \u001B[22m\r\n\r\n\u001B[1m \u001B[22m                  \u001B[2m | \u001B[22m\u001B[1mInitial total\u001B[22m               \u001B[2m | \u001B[22m  \u001B[1m5.94 kB\u001B[22m\r\n\r\n\u001B[1mLazy chunk files\u001B[22m   \u001B[2m | \u001B[22m\u001B[1mNames\u001B[22m                       \u001B[2m | \u001B[22m \u001B[1mRaw size\u001B[22m\r\n\u001B[32mchunk-VVTHCVLX.js\u001B[39m  \u001B[2m | \u001B[22m\u001B[2mproyecto-component\u001B[22m          \u001B[2m | \u001B[22m \u001B[36m24.94 kB\u001B[39m\u001B[2m | \u001B[22m\r\n\u001B[32mchunk-LFVN6U3T.js\u001B[39m  \u001B[2m | \u001B[22m\u001B[2mbootstrap\u001B[22m                   \u001B[2m | \u001B[22m \u001B[36m12.62 kB\u001B[39m\u001B[2m | \u001B[22m\r\n\u001B[32mchunk-TYHQ5H4Q.js\u001B[39m  \u001B[2m | \u001B[22m\u001B[2m-\u001B[22m                           \u001B[2m | \u001B[22m  \u001B[36m3.49 kB\u001B[39m\u001B[2m | \u001B[22m\r\n\u001B[32mchunk-PNTEW622.js\u001B[39m  \u001B[2m | \u001B[22m\u001B[2mdatos-hardcodeados-component\u001B[22m\u001B[2m | \u001B[22m  \u001B[36m1.82 kB\u001B[39m\u001B[2m | \u001B[22m\r\n\u001B[32mchunk-RQTC6QVG.js\u001B[39m  \u001B[2m | \u001B[22m\u001B[2mvulnerabilidades-component\u001B[22m  \u001B[2m | \u001B[22m  \u001B[36m1.79 kB\u001B[39m\u001B[2m | \u001B[22m\r\n\u001B[32mchunk-XIOQAEXZ.js\u001B[39m  \u001B[2m | \u001B[22m\u001B[2mentradas-salidas-component\u001B[22m  \u001B[2m | \u001B[22m  \u001B[36m1.76 kB\u001B[39m\u001B[2m | \u001B[22m\r\n\u001B[32mchunk-QYNX73G6.js\u001B[39m  \u001B[2m | \u001B[22m\u001B[2mdeuda-tecnica-component\u001B[22m     \u001B[2m | \u001B[22m  \u001B[36m1.75 kB\u001B[39m\u001B[2m | \u001B[22m\r\n\u001B[32mchunk-RLKDZVLR.js\u001B[39m  \u001B[2m | \u001B[22m\u001B[2maprobar-reglas-component\u001B[22m    \u001B[2m | \u001B[22m  \u001B[36m1.74 kB\u001B[39m\u001B[2m | \u001B[22m\r\n\u001B[32mchunk-6DGBIHD5.js\u001B[39m  \u001B[2m | \u001B[22m\u001B[2marquitectura-component\u001B[22m      \u001B[2m | \u001B[22m  \u001B[36m1.73 kB\u001B[39m\u001B[2m | \u001B[22m\r\n\u001B[32mchunk-SU6BUXHJ.js\u001B[39m  \u001B[2m | \u001B[22m\u001B[2marquitectura-component\u001B[22m      \u001B[2m | \u001B[22m  \u001B[36m1.73 kB\u001B[39m\u001B[2m | \u001B[22m\r\n\u001B[32mchunk-75UAV6MX.js\u001B[39m  \u001B[2m | \u001B[22m\u001B[2mconfiguracion-component\u001B[22m     \u001B[2m | \u001B[22m  \u001B[36m1.72 kB\u001B[39m\u001B[2m | \u001B[22m\r\n\u001B[32mchunk-7TNFXB2S.js\u001B[39m  \u001B[2m | \u001B[22m\u001B[2mcondiciones-component\u001B[22m       \u001B[2m | \u001B[22m  \u001B[36m1.72 kB\u001B[39m\u001B[2m | \u001B[22m\r\n\u001B[32mchunk-H7RTB7S6.js\u001B[39m  \u001B[2m | \u001B[22m\u001B[2mpull-requests-component\u001B[22m     \u001B[2m | \u001B[22m  \u001B[36m1.71 kB\u001B[39m\u001B[2m | \u001B[22m\r\n\u001B[32mchunk-OTW5B5LT.js\u001B[39m  \u001B[2m | \u001B[22m\u001B[2mcomponentes-component\u001B[22m       \u001B[2m | \u001B[22m  \u001B[36m1.70 kB\u001B[39m\u001B[2m | \u001B[22m\r\n\u001B[32mchunk-LET7PJOA.js\u001B[39m  \u001B[2m | \u001B[22m\u001B[2mdependencias-component\u001B[22m      \u001B[2m | \u001B[22m  \u001B[36m1.69 kB\u001B[39m\u001B[2m | \u001B[22m\r\n\u001B[2m...and 14 more lazy ch\n\u2026[truncated]",
+        "durationMs": 10154
+      }
+    ],
+    "executions": [
+      {
+        "source": "angular-build",
+        "resolvedExecutable": "C:\\nvm4w\\nodejs\\npm.CMD",
+        "args": [
+          "run",
+          "build"
+        ],
+        "cwd": "D:\\AA-BURO-DESARROLLO\\HAKATON HITSS\\mf-Legacyshift",
+        "env": {},
+        "prependPath": [],
+        "platform": "win32"
+      },
+      {
+        "source": "tests-pass",
+        "resolvedExecutable": "C:\\nvm4w\\nodejs\\npm.CMD",
+        "args": [
+          "test",
+          "--",
+          "proyecto.component.spec.ts",
+          "workspace-page.component.spec.ts"
+        ],
+        "cwd": "D:\\AA-BURO-DESARROLLO\\HAKATON HITSS\\mf-Legacyshift",
+        "env": {},
+        "prependPath": [],
+        "platform": "win32"
+      },
+      {
+        "source": "project-route-served",
+        "resolvedExecutable": "C:\\nvm4w\\nodejs\\npm.CMD",
+        "args": [
+          "run",
+          "dev",
+          "--",
+          "--port",
+          "4311"
+        ],
+        "cwd": "D:\\AA-BURO-DESARROLLO\\HAKATON HITSS\\mf-Legacyshift",
+        "env": {},
+        "prependPath": [],
+        "platform": "win32"
+      }
+    ]
+  }
+}

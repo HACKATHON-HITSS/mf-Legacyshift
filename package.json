@@ -1,0 +1,53 @@
+{
+  "name": "mf-PR-Guardian-AI",
+  "version": "1.0.2",
+  "private": true,
+  "scripts": {
+    "start:analysis-api": "node --env-file-if-exists=.env server/huawei-server.mjs",
+    "test:analysis-api": "node --test server/huawei-server.test.mjs",
+    "ng": "ng",
+    "dev": "ng serve",
+    "start": "ng serve",
+    "build": "ng build && node scripts/generate-remote-assets.mjs",
+    "build:assets-manifest": "node scripts/generate-remote-assets.mjs",
+    "watch": "ng build --watch --configuration development",
+    "test": "vitest run --coverage",
+    "coverage": "vitest run --coverage",
+    "lint": "eslint . --max-warnings 0",
+    "clean": "rm -rf node_modules && rm -rf .angular"
+  },
+  "dependencies": {
+    "@angular-architects/native-federation": "^20.1.7",
+    "@angular/animations": "20.3.17",
+    "@angular/common": "20.3.17",
+    "@angular/compiler": "20.3.17",
+    "@angular/core": "20.3.17",
+    "@angular/forms": "20.3.17",
+    "@angular/platform-browser": "20.3.17",
+    "@angular/platform-browser-dynamic": "20.3.17",
+    "@angular/router": "20.3.17",
+    "es-module-shims": "^1.5.12",
+    "fflate": "^0.8.2",
+    "java-parser": "^3.0.1",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.3.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@analogjs/vite-plugin-angular": "1.22.5",
+    "@angular-devkit/build-angular": "^20.3.9",
+    "@angular/build": "^20.3.9",
+    "@angular/cli": "20.3.17",
+    "@angular/compiler-cli": "20.3.17",
+    "@tailwindcss/postcss": "^4.2.1",
+    "@vitest/coverage-v8": "^3.2.4",
+    "jsdom": "^26.0.0",
+    "postcss": "^8.5.8",
+    "tailwindcss": "^4.2.1",
+    "typescript": "~5.8.0",
+    "vitest": "^3.2.4"
+  },
+  "optionalDependencies": {
+    "@oxc-parser/binding-win32-x64-msvc": "^0.114.0"
+  }
+}

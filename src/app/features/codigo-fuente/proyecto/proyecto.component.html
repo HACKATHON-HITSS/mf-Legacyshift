@@ -1,0 +1,110 @@
+<section class="project-page" aria-labelledby="project-title">
+  <header class="page-header">
+    <p class="eyebrow">Legacyshift · Código fuente</p>
+    <h1 id="project-title">Seleccionar proyecto</h1>
+    <p class="page-description">Adjunta un archivo o la carpeta completa del proyecto legado que quieres analizar.</p>
+  </header>
+
+  <section class="upload-card" aria-labelledby="upload-title">
+    <header class="card-header">
+      <span class="step-number" aria-hidden="true">1</span>
+      <div>
+        <h2 id="upload-title">Adjuntar código fuente</h2>
+        <p>Selecciona un documento o una carpeta con los servicios backend y su código fuente.</p>
+      </div>
+    </header>
+
+    <input #fileInput id="project-file" type="file" hidden
+      aria-label="Seleccionar documento o código legado"
+      (change)="onFileSelected(fileInput)" />
+    <input #folderInput id="project-folder" type="file" hidden multiple webkitdirectory
+      aria-label="Seleccionar carpeta completa del proyecto"
+      (change)="onFolderSelected(folderInput)" />
+
+    <div class="drop-zone" [class.drop-zone-active]="isDragging()"
+      (dragenter)="onDragEnter($event)" (dragover)="onDragOver($event)"
+      (dragleave)="onDragLeave($event)" (drop)="onDrop($event)">
+      <span class="upload-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 16V4m-4 4 4-4 4 4M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />
+        </svg>
+      </span>
+      <h3>{{ isDragging() ? 'Suelta el archivo aquí' : 'Arrastra y suelta tu archivo aquí' }}</h3>
+      <p>También puedes seleccionar una carpeta completa desde tu equipo.</p>
+      <div class="upload-actions">
+        <button type="button" class="button button-primary" [disabled]="isAnalyzing()" (click)="fileInput.click()">Seleccionar archivo</button>
+        <button type="button" class="button button-secondary" [disabled]="isAnalyzing()" (click)="folderInput.click()">Seleccionar carpeta</button>
+      </div>
+      <p class="upload-hint">La carpeta incluye los archivos de sus subcarpetas. Una nueva selección reemplaza la anterior.</p>
+      <p class="upload-hint">Solo se adjuntan archivos; las carpetas vacías no se incluyen. El contenido permanece en tu navegador.</p>
+    </div>
+
+    @if (errorMessage()) {
+      <p class="upload-error" role="alert">{{ errorMessage() }}</p>
+    }
+
+    <div aria-live="polite" aria-atomic="true">
+      @if (selectedAttachment(); as attachment) {
+        <div class="selected-file">
+          <span class="file-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              @if (attachment.kind === 'folder') {
+                <path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" />
+              } @else {
+                <path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6Z" />
+                <path d="M14 3v6h6M8 13h8M8 17h5" />
+              }
+            </svg>
+          </span>
+          <div class="file-details">
+            <p class="file-name">{{ attachment.name }}</p>
+            <p class="file-metadata">
+              {{ formatFileSize(attachment.size) }} ·
+              @if (attachment.kind === 'folder') {
+                {{ attachment.files.length }} archivo(s), incluidas subcarpetas
+              } @else {
+                {{ attachment.files[0].type || 'Tipo no informado por el navegador' }}
+              }
+            </p>
+            <span class="file-status">{{ attachment.kind === 'folder' ? 'Carpeta seleccionada' : 'Archivo seleccionado' }} · Sin enviar</span>
+          </div>
+          <button type="button" class="button button-secondary" [disabled]="isAnalyzing()" [attr.aria-label]="'Quitar selección ' + attachment.name" (click)="removeAttachment()">
+            Quitar
+          </button>
+        </div>
+        @if (attachment.kind === 'folder') {
+          <details class="folder-preview">
+            <summary>Ver archivos y rutas de la carpeta</summary>
+            <ul class="folder-files" aria-label="Archivos seleccionados">
+              @for (file of attachment.files; track file.webkitRelativePath) {
+                <li>
+                  <span>{{ file.webkitRelativePath }}</span>
+                  <span class="file-metadata">{{ formatFileSize(file.size) }}</span>
+                </li>
+              }
+            </ul>
+          </details>
+        }
+      }
+    </div>
+
+    <footer class="card-footer">
+      <p id="analysis-help">Análisis local de archivos o ZIP. Los hallazgos requieren revisión; los JAR no se descomprimen.</p>
+      <button type="button" class="button button-primary" [disabled]="!selectedAttachment() || isAnalyzing()" aria-describedby="analysis-help" (click)="analyzeProject()">
+        {{ isAnalyzing() ? 'Analizando…' : selectedAttachment()?.kind === 'folder' ? 'Analizar carpeta' : 'Analizar archivo' }}
+      </button>
+    </footer>
+    @if (isAnalyzing()) {
+      <p role="status" class="file-metadata">Procesando {{ processedFiles() }} de {{ totalFiles() }} archivos. El contenido no sale de tu equipo.</p>
+      <progress aria-label="Progreso del análisis local" [value]="processedFiles()" [max]="totalFiles() || 1"></progress>
+    }
+  </section>
+  @if (analysisReport(); as report) {
+    <section class="upload-card" aria-label="Análisis disponible">
+      <h2>Resultados de {{ sessionStore.session()?.project }}</h2>
+      <p>El informe está disponible en todos los módulos de análisis. Las reglas candidatas requieren revisión.</p>
+      <a class="button button-primary" [routerLink]="resultsLink()">Ver matriz de reglas y resultados</a>
+    </section>
+    <app-mf-project-analysis-results [report]="report" />
+  }
+</section>

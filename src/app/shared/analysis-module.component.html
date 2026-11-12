@@ -1,0 +1,365 @@
+<section class="module-page" aria-labelledby="module-title">
+  <header>
+    <p class="eyebrow">Legacyshift · {{ section() === 'aprobar-reglas' || !isTable() ? 'Decisiones' : 'Análisis' }}</p>
+    <h1 id="module-title">{{ meta().title }}</h1>
+    @if (section() !== 'datos-hardcodeados' && section() !== 'reglas' && section() !== 'logica') { <p>{{ meta().description }}</p> }
+    @if (section() === 'logica') { <p>Visualiza el orden y las decisiones de los bloques que se pudieron reconstruir.</p> }
+    @if (section() === 'reglas') { <p>Reglas técnicas detectadas en artefactos OSB, PL/SQL y transformaciones. Requieren validación de negocio.</p> }
+  </header>
+  @if (store.session(); as session) {
+    <div class="session-bar">
+      <div><strong>{{ session.project }}</strong><p>Analizado {{ session.completedAt | date:'dd/MM/yyyy HH:mm' }} · Sesión en memoria</p></div>
+      <a [routerLink]="link('codigo-fuente/proyecto')">Volver al proyecto</a>
+    </div>
+    @if (section() === 'logica') {
+      @if (session.report.java.components.length) {
+        <section class="card">
+          <h2>Flujos Java desde puntos de entrada</h2>
+          <p>{{ session.report.java.components.length }} clases · {{ session.report.java.methods.length }} métodos · {{ javaEntries().length }} puntos de entrada detectados</p>
+          @if (javaEntry(); as entry) {
+            <label>Punto de entrada<select #javaEntrySelect [value]="entry.id" (change)="selectedJavaEntry.set(javaEntrySelect.value); selectedJavaMethod.set(''); aiAnswer.set('')">
+              @for (method of javaEntries(); track method.id) { <option [value]="method.id">{{ method.className }}.{{ method.name }} · {{ method.path }}:{{ method.startLine }}</option> }
+            </select></label>
+            <p>El grafo muestra llamadas encontradas en el código. Los destinos son inferidos por el tipo declarado; las ramas no se ejecutan necesariamente en una misma petición. El recorrido se limita a ocho niveles.</p>
+            <div class="java-graph" aria-label="Grafo de llamadas Java">
+              @for (item of javaReachable(); track item.method.id) {
+                <article class="java-node">
+                  <button type="button" (click)="selectedJavaMethod.set(item.method.id)"><strong>{{ item.method.className }}.{{ item.method.name }}</strong> <span>{{ item.depth === 0 ? 'Punto de entrada' : 'Nivel ' + item.depth }}</span></button>
+                  <small><code>{{ item.method.path }}:{{ item.method.startLine }}–{{ item.method.endLine }}</code></small>
+                  @for (call of item.method.calls; track call.id) {
+                    <div class="java-edge">↳ {{ call.receiver ? call.receiver + '.' : '' }}{{ call.name }}() · {{ call.resolution === 'INFERRED' ? 'Destino posible' : 'Sin resolver' }}
+                      @if (call.target && javaMethodIndex().get(call.target); as target) { <button type="button" (click)="selectedJavaMethod.set(target.id)">Ver {{ target.className }}.{{ target.name }}</button> }
+                      <small>{{ call.evidence.path }}:{{ call.evidence.startLine }} · {{ call.reason }}</small></div>
+                  }
+                </article>
+              }
+            </div>
+            @if (javaMethod(); as method) {
+              <h3>{{ method.className }}.{{ method.name }}</h3>
+              <p><code>{{ method.path }}:{{ method.startLine }}–{{ method.endLine }}</code></p>
+              <details><summary>Ver fragmento del método</summary><pre class="source-snippet">{{ method.evidence.snippet }}</pre><p>El fragmento puede estar limitado a 2.000 caracteres.</p></details>
+              <h3>Control observado en el método</h3>
+              <ul>@for (condition of method.conditions; track condition.id) { <li><strong>{{ condition.kind }}</strong> · {{ condition.expression }} <code>{{ condition.evidence.path }}:{{ condition.evidence.startLine }}</code></li> } @empty { <li>No se detectaron estructuras de control compatibles.</li> }</ul>
+              <p>La lista identifica estructuras; no reconstruye todavía las conexiones Sí/No ni las rutas de ejecución Java.</p>
+            }
+            <div class="actions"><button type="button" (click)="downloadJavaMermaid()">Descargar grafo Mermaid</button><button type="button" [disabled]="isAsking()" (click)="explainJavaFlow()">{{ isAsking() ? 'Consultando…' : 'Explicar con Huawei' }}</button></div>
+            <p>La consulta envía hasta 15 métodos y fragmentos limitados a Huawei.</p>
+            @if (aiError()) { <p role="alert" class="notice">{{ aiError() }}</p> }
+            @if (aiAnswer()) { <p class="answer" aria-live="polite">{{ aiAnswer() }}</p> }
+          } @else { <p>No se encontraron puntos de entrada Java compatibles. Las clases y métodos detectados están disponibles en Arquitectura actual.</p> }
+          @if (session.report.java.errors.length) { <details><summary>Archivos Java no interpretados ({{ session.report.java.errors.length }})</summary><ul>@for (error of session.report.java.errors; track $index) { <li><code>{{ error.path }}</code> · {{ error.detail }}</li> }</ul></details> }
+        </section>
+      } @else if (session.report.java.errors.length) {
+        <section class="card"><h2>No se pudo interpretar el código Java</h2><ul>@for (error of session.report.java.errors; track $index) { <li><code>{{ error.path }}</code> · {{ error.detail }}</li> }</ul></section>
+      }
+      <section class="card">
+        <h2>Diagrama de proceso PL/SQL</h2>
+        @if (session.report.processFlows.length) {
+          <label>Seleccionar bloque<select #flowSelect [value]="currentFlow()?.id ?? ''" (change)="selectedFlow.set(flowSelect.value)">
+            @for (flow of session.report.processFlows; track flow.id) { <option [value]="flow.id">{{ flow.name }} · {{ flow.path }}:{{ flow.startLine }}</option> }
+          </select></label>
+          @if (currentFlow(); as flow) {
+            <p><code>{{ flow.path }} · líneas {{ flow.startLine }}–{{ flow.endLine }}</code></p>
+            <div class="flow-canvas" aria-label="Diagrama del bloque seleccionado">
+              <div class="flow-node flow-terminal">Inicio del bloque <small>Línea {{ flow.startLine }}</small></div>
+              @for (step of flow.before; track $index) {
+                <div class="flow-arrow" aria-hidden="true">↓</div><div class="flow-node"><code>{{ step.label }}</code><small>Línea {{ step.line }}</small></div>
+              }
+              @if (flow.decision; as decision) {
+                <div class="flow-arrow" aria-hidden="true">↓</div><div class="flow-node flow-decision"><strong>¿Se cumple la condición?</strong><code>{{ decision.label }}</code><small>Línea {{ decision.line }}</small></div>
+                <div class="flow-branches">
+                  <div class="flow-branch"><strong>Sí ↓</strong>
+                    @for (step of flow.yes; track $index) { <div class="flow-node"><code>{{ step.label }}</code><small>Línea {{ step.line }}</small></div><span aria-hidden="true">↓</span> }
+                    @empty { <div class="flow-node flow-empty">Sin acciones detectadas</div> }
+                  </div>
+                  <div class="flow-branch"><strong>No ↓</strong>
+                    @for (step of flow.no; track $index) { <div class="flow-node"><code>{{ step.label }}</code><small>Línea {{ step.line }}</small></div><span aria-hidden="true">↓</span> }
+                    @empty { <div class="flow-node flow-empty">Continúa después de la condición</div> }
+                  </div>
+                </div>
+                <div class="flow-merge">Ambas ramas continúan ↓</div>
+              }
+              @for (step of flow.after; track $index) {
+                <div class="flow-node"><code>{{ step.label }}</code><small>Línea {{ step.line }}</small></div><div class="flow-arrow" aria-hidden="true">↓</div>
+              }
+              @if (!flow.decision && !flow.after.length) { <div class="flow-arrow" aria-hidden="true">↓</div> }
+              <div class="flow-node flow-terminal">Fin del bloque <small>Línea {{ flow.endLine }}</small></div>
+            </div>
+          }
+        } @else {
+          <div class="empty-results"><h2>No hay bloques reconstruidos</h2><p>El diagrama admite actualmente bloques PL/SQL sencillos. Los demás archivos permanecen en el informe de análisis.</p></div>
+        }
+        <p>Diagrama parcial basado en código PL/SQL: admite instrucciones de una línea y una condición IF/ELSE sin anidación. No representa llamadas entre archivos, bucles, excepciones ni otros lenguajes; estos casos requieren revisión.</p>
+      </section>
+    } @else if (section() === 'reglas') {
+      <section class="card" aria-labelledby="business-discovery-title">
+        <h2 id="business-discovery-title">Descubrir reglas de negocio con Huawei</h2>
+        <p>Selecciona un método Java. La consulta envía a Huawei su fragmento de código y el glosario que escribas.</p>
+        @if (session.report.java.methods.length) {
+          <label>Método a analizar<select #businessMethod [value]="selectedDiscoveryMethod()" (change)="selectedDiscoveryMethod.set(businessMethod.value); aiError.set('')">
+            <option value="">Selecciona un método</option>
+            @for (method of session.report.java.methods; track method.id) { <option [value]="method.id">{{ method.entryPoint ? 'Entrada · ' : '' }}{{ method.className }}.{{ method.name }} · {{ method.path }}:{{ method.startLine }}</option> }
+          </select></label>
+          <label>Glosario opcional<textarea #businessGlossary maxlength="4000" [value]="discoveryGlossary()" (input)="discoveryGlossary.set(businessGlossary.value)" placeholder="Ej.: PRE = prepago; ACT = activo"></textarea></label>
+          <button type="button" [disabled]="!discoveryMethod() || isAsking()" (click)="discoverBusinessRules()">{{ isAsking() ? 'Analizando método…' : 'Generar análisis de negocio' }}</button>
+          @if (isAsking()) { <p role="status">Consultando Huawei…</p> }
+          @if (aiError()) { <p class="notice" role="alert">{{ aiError() }}</p> }
+          @if (discovery(); as result) {
+            <h3>1. Resumen</h3><p class="answer">{{ result.resumen }}</p><p>{{ result.cobertura }}</p>
+            @if (result.discarded) { <p class="notice">{{ result.discarded }} regla(s) omitidas porque su fragmento no pudo verificarse de forma única en el código enviado.</p> }
+            <h3>2. Reglas de negocio</h3>
+            @for (rule of result.reglas; track rule.id) {
+              <article class="business-rule">
+                <h3>{{ rule.nombre }}</h3><p>{{ rule.descripcion }}</p>
+                <p><strong>Tipo:</strong> {{ rule.tipo }} · <strong>Módulo:</strong> {{ rule.modulo }} · <strong>Confianza propuesta:</strong> {{ rule.confianza }}</p>
+                <p><strong>Condiciones:</strong> {{ rule.condiciones.join('; ') || 'Por confirmar' }}</p>
+                <p><strong>Resultado:</strong> {{ rule.resultado }} · <strong>Alternativa:</strong> {{ rule.alternativa || 'No identificada' }}</p>
+                @if (rule.valores_clave.length) { <p><strong>Valores:</strong> @for (value of rule.valores_clave; track $index) { {{ value.nombre }} = {{ value.valor }} ({{ value.significado }}){{ $last ? '' : '; ' }} }</p> }
+                <p><strong>Dependencias indicadas por IA:</strong> {{ rule.dependencias.join(', ') || 'Ninguna identificada' }} · <strong>Observaciones:</strong> {{ rule.observaciones || 'Sin observaciones' }}</p>
+                <p><code>{{ rule.origen.archivo }} · {{ rule.origen.clase }}.{{ rule.origen.metodo }} · línea {{ rule.origen.linea }}</code></p>
+                <details><summary>Ver fragmento comprobado</summary><pre class="source-snippet">{{ rule.fragmento_codigo }}</pre></details>
+                <label>Estado de revisión<select #businessStatus [value]="store.ruleStatuses()[rule.id] ?? 'UNDER_INVESTIGATION'" (change)="setRuleStatus(rule.id, businessStatus.value)"><option value="PENDING">Pendiente</option><option value="VALIDATED">Validada</option><option value="REJECTED">Rechazada</option><option value="UNDER_INVESTIGATION">En investigación</option></select></label>
+                <label>Observación del especialista<textarea #businessNote maxlength="1000" [value]="store.ruleNotes()[rule.id] ?? ''" (input)="setRuleNote(rule.id, businessNote.value)"></textarea></label>
+              </article>
+            } @empty { <p>El modelo no devolvió reglas con fragmentos verificables para este método.</p> }
+            <h3>3. Pendientes</h3><ul>@for (pending of result.pendientes; track $index) { <li>{{ pending }}</li> } @empty { <li>El modelo no indicó pendientes adicionales.</li> }</ul>
+            <p>Las descripciones, dependencias y niveles de confianza son propuestas de IA y requieren revisión humana. Si vuelves a analizar este método se reemplazará su resultado y sus revisiones.</p>
+            <button type="button" (click)="downloadDiscovery()">Descargar resultado JSON</button>
+          }
+        } @else { <p>No hay métodos Java disponibles. Selecciona y analiza un proyecto Java compatible.</p> }
+      </section>
+      <dl class="stats hardcoded-stats">
+        <div><dt>Reglas detectadas</dt><dd>{{ session.report.businessRules.length }}</dd></div>
+        <div><dt>Artefactos analizados</dt><dd>{{ session.report.analyzed }}</dd></div>
+        <div><dt>Omitidos / errores</dt><dd>{{ session.report.skipped }} / {{ session.report.errors }}</dd></div>
+      </dl>
+      <section class="card">
+        <h2>Hallazgos técnicos del análisis local</h2>
+        <p>Versión de artefactos (SHA-256): <code>{{ session.report.artifactVersion || 'No disponible: hay archivos omitidos, errores o el navegador no permite calcular el hash.' }}</code></p>
+        <details><summary>Inventario de artefactos ({{ session.report.files.length }})</summary>
+          <div class="table-scroll"><table><thead><tr><th>Archivo</th><th>Tipo</th><th>Estado</th><th>Detalle</th></tr></thead>
+            <tbody>@for (file of session.report.files; track $index) { <tr><td><code>{{ file.path }}</code></td><td>{{ file.language }}</td><td>{{ file.status === 'analyzed' ? 'Leído' : file.status === 'skipped' ? 'Omitido' : 'Error' }}</td><td>{{ file.detail || 'Sin incidencias de lectura' }}</td></tr> }</tbody>
+          </table></div>
+        </details>
+        <p>Para OSB selecciona los archivos exportados o un ZIP compatible. El análisis de dependencias es parcial.</p>
+      </section>
+      <section class="card">
+        <div class="toolbar"><label>Buscar regla o componente<input #ruleFilter type="search" [value]="search()" (input)="filter(ruleFilter.value)" /></label><button type="button" (click)="download('csv')">Exportar matriz CSV</button></div>
+        @if (session.report.businessRules.length) {
+          <p>{{ matrixRules().length }} regla(s) · Página {{ page() + 1 }} de {{ matrixPages() }}</p>
+          <div class="table-scroll"><table>
+            <caption>Reglas detectadas; selecciona una para consultar su evidencia.</caption>
+            <thead><tr><th>ID / regla</th><th>Tipo</th><th>Condición</th><th>Componente</th><th>Dependencias observadas</th><th>Evidencia</th><th>Estado</th></tr></thead>
+            <tbody>@for (rule of visibleMatrixRules(); track rule.ruleId) {
+              <tr><td><button type="button" (click)="selectedRule.set(rule.ruleId); aiAnswer.set(''); aiError.set('')">{{ rule.ruleName }}</button><small>{{ rule.ruleId }}</small></td>
+                <td>{{ rule.ruleType }}</td><td>{{ rule.condition || 'No identificada' }}</td><td>{{ rule.component }}</td><td>{{ rule.dependencies.join(', ') || 'No identificadas' }}</td>
+                <td><code>{{ rule.path }} · {{ rule.location }}</code></td>
+                <td><label>Estado<select #status [value]="store.ruleStatuses()[rule.ruleId] ?? 'UNDER_INVESTIGATION'" (change)="setRuleStatus(rule.ruleId, status.value)"><option value="PENDING">PENDING</option><option value="VALIDATED">VALIDATED</option><option value="REJECTED">REJECTED</option><option value="UNDER_INVESTIGATION">UNDER_INVESTIGATION</option></select></label></td></tr>
+            } @empty { <tr><td colspan="7">No hay coincidencias.</td></tr> }</tbody>
+          </table></div>
+          <div class="pagination"><button type="button" [disabled]="page() === 0" (click)="page.set(page() - 1)">Anterior</button><button type="button" [disabled]="page() + 1 >= matrixPages()" (click)="page.set(page() + 1)">Siguiente</button></div>
+        } @else { <div class="empty-results"><h2>No se detectaron reglas compatibles</h2><p>Revisa el inventario y carga archivos OSB descomprimidos, PL/SQL, XQuery o XSLT.</p></div> }
+      </section>
+      @if (currentRule(); as rule) {
+        <section class="card" aria-label="Evidencia de la regla seleccionada">
+          <h2>{{ rule.ruleName }}</h2><p><code>{{ rule.path }} · {{ rule.location }}</code></p>
+          <h3>Fragmento de origen</h3><pre class="source-snippet">{{ rule.snippet }}</pre>
+          <p><strong>Hash del archivo:</strong> <code>{{ rule.artifactHash || 'No disponible' }}</code> · <strong>Método:</strong> {{ rule.discoveryMethod }}</p>
+          <p>{{ rule.limitations }}</p>
+          <h3>Relaciones observadas</h3>
+          <p><strong>Regla → componente:</strong> {{ rule.componentId }} · <strong>Evidencia:</strong> {{ rule.path }} · {{ rule.location }}</p>
+          @if (rule.dependencies.length) { <ul>@for (dependency of rule.dependencies; track $index) { <li>Referencia a <code>{{ dependency }}</code> en la evidencia anterior; destino e impacto transitivo sin resolver.</li> }</ul> }
+          @else { <p>No se identificaron referencias explícitas en esta evidencia.</p> }
+          <label>Observaciones del especialista<textarea #ruleNote maxlength="1000" [value]="store.ruleNotes()[rule.ruleId] ?? ''" (input)="setRuleNote(rule.ruleId, ruleNote.value)" placeholder="Motivo de la validación o información pendiente"></textarea></label>
+          <h3>Descripción funcional asistida</h3><p>La interpretación es una propuesta y debe revisarse frente a la evidencia.</p>
+          <button type="button" [disabled]="isAsking()" (click)="explainRule()">Generar explicación con Huawei</button>
+          @if (store.ruleInterpretations()[rule.ruleId]; as interpretation) { <p class="answer">{{ interpretation }}</p> }
+          <h3>Consultar sobre esta regla</h3><p>La consulta envía a Huawei la regla seleccionada y su fragmento de código.</p>
+          <label>Pregunta<textarea #rulePrompt maxlength="2000" [value]="ruleQuestion()" (input)="ruleQuestion.set(rulePrompt.value)" placeholder="¿Qué componentes podrían verse afectados por un cambio?"></textarea></label>
+          <button type="button" [disabled]="isAsking() || !ruleQuestion().trim()" (click)="askAboutRule()">{{ isAsking() ? 'Consultando…' : 'Consultar Huawei' }}</button>
+          @if (aiError()) { <p role="alert" class="notice">{{ aiError() }}</p> }
+          @if (aiAnswer()) { <p class="answer" aria-live="polite">{{ aiAnswer() }}</p> }
+        </section>
+      }
+    } @else if (section() === 'datos-hardcodeados') {
+      <dl class="stats hardcoded-stats">
+        <div><dt>Hallazgos detectados</dt><dd>{{ session.report.hardcoded.length }}</dd></div>
+        <div><dt>Archivos con hallazgos</dt><dd>{{ hardcodedFiles().length }}</dd></div>
+        <div><dt>Archivos analizados</dt><dd>{{ session.report.analyzed }}</dd></div>
+      </dl>
+      @if (hardcodedFiles().length) {
+        <section class="card" aria-labelledby="hardcoded-chart-title">
+          <h2 id="hardcoded-chart-title">Hallazgos por archivo</h2>
+          <p>Selecciona un archivo para ver su detalle.</p>
+          <div class="hardcoded-chart">
+            @for (file of hardcodedFiles(); track file.path) {
+              <button type="button" class="chart-row" (click)="filter(file.path)" [attr.aria-label]="file.path + ': ' + file.count + ' hallazgos'">
+                <span class="chart-path">{{ file.path }}</span>
+                <span class="chart-track" aria-hidden="true"><span class="chart-bar" [style.width.%]="file.count / hardcodedFiles()[0].count * 100"></span></span>
+                <strong>{{ file.count }}</strong>
+              </button>
+            }
+          </div>
+        </section>
+      }
+      <section class="card">
+        <div class="toolbar">
+          <label>Buscar archivo o hallazgo<input #hardcodedFilter type="search" [value]="search()" (input)="filter(hardcodedFilter.value)" placeholder="Buscar por ruta o tipo" /></label>
+          <button type="button" (click)="download('csv')">Descargar CSV</button>
+        </div>
+        @if (rows().length) {
+          <p role="status">{{ filtered().length }} hallazgo(s) · Página {{ page() + 1 }} de {{ pageCount() }}</p>
+          <div class="table-scroll"><table>
+            <caption>Detalle de valores hardcodeados detectados</caption>
+            <thead><tr><th scope="col">Archivo</th><th scope="col">Línea</th><th scope="col">Tipo de hallazgo</th></tr></thead>
+            <tbody>@for (row of visible(); track row.id) {
+              <tr><td><code>{{ row.path }}</code></td><td>{{ row.line || 'No disponible' }}</td><td>{{ row.title }}</td></tr>
+            } @empty { <tr><td colspan="3">No hay coincidencias para esta búsqueda.</td></tr> }</tbody>
+          </table></div>
+          <div class="pagination"><button type="button" [disabled]="page() === 0" (click)="page.set(page() - 1)">Anterior</button><button type="button" [disabled]="page() + 1 >= pageCount()" (click)="page.set(page() + 1)">Siguiente</button></div>
+          <p>Los valores se omiten. Revisa cada ubicación en el código.</p>
+        } @else {
+          <div class="empty-results"><h2>No se detectaron valores hardcodeados</h2><p>El análisis identifica posibles valores fijos en archivos compatibles.</p></div>
+        }
+      </section>
+    } @else {
+    <dl class="stats">
+      <div><dt>Archivos analizados</dt><dd>{{ session.report.analyzed }}</dd></div>
+      <div><dt>Omitidos / errores</dt><dd>{{ session.report.skipped }} / {{ session.report.errors }}</dd></div>
+      <div><dt>Reglas candidatas</dt><dd>{{ ruleCount() }}</dd></div>
+      <div><dt>Reglas aprobadas</dt><dd>{{ approvedRules().length }}</dd></div>
+    </dl>
+    @if (!session.report.analyzed) {
+      <p class="notice" role="status">No se pudo analizar ningún archivo compatible. Selecciona código fuente de texto; los archivos ZIP, JAR, PDF y Word no se interpretan.</p>
+    }
+    <nav class="module-nav" aria-label="Resultados del análisis">
+      @for (item of analysisSections; track item.key) {
+        <a [class.active]="section() === item.key" [attr.aria-current]="section() === item.key ? 'page' : null" [routerLink]="link('analisis/' + item.key)">{{ item.title }}</a>
+      }
+    </nav>
+    @if (section() === 'arquitectura') {
+      @if (session.report.java.components.length) {
+        <section class="card"><h2>Componentes Java y llamadas observadas</h2>
+          <p>La clasificación por nombre o anotación es orientativa. Los destinos de llamadas son inferidos y pueden variar en ejecución.</p>
+          <div class="java-graph">@for (component of session.report.java.components; track component.id) {
+            <details class="java-node"><summary><strong>{{ component.name }}</strong> · {{ component.kind }}</summary>
+              <p><code>{{ component.path }}:{{ component.startLine }}–{{ component.endLine }}</code></p>
+              @if (component.extends) { <p>Extiende: {{ component.extends }}</p> }
+              @if (component.implements.length) { <p>Implementa: {{ component.implements.join(', ') }}</p> }
+              @for (method of session.report.java.methods; track method.id) { @if (method.classId === component.id) {
+                <p><strong>{{ method.name }}()</strong> · línea {{ method.startLine }}</p>
+                @for (call of method.calls; track call.id) { <div class="java-edge">↳ {{ call.receiver }}.{{ call.name }}() · {{ call.resolution }} <small>{{ call.evidence.path }}:{{ call.evidence.startLine }}</small></div> }
+              } }
+            </details>
+          }</div>
+        </section>
+      }
+      <section class="card" aria-labelledby="architecture-title">
+        <h2 id="architecture-title">Mapa de componentes observados</h2>
+        <p>Agrupación por rutas, sin conexiones de llamadas inferidas.</p>
+        <div class="component-map">
+          @for (role of roles(); track role.name) {
+            <div><strong>{{ role.name }}</strong><span>{{ role.count }} archivo(s)</span></div>
+          } @empty { <p>No hay componentes reconocidos en los archivos analizados.</p> }
+        </div>
+      </section>
+    }
+    @if (isTable()) {
+      <section class="card">
+        <div class="toolbar">
+          <label>Buscar hallazgo o archivo<input #filterInput type="search" [value]="search()" (input)="filter(filterInput.value)" placeholder="Filtrar resultados" /></label>
+          <button type="button" (click)="download('csv')">Descargar matriz CSV</button>
+        </div>
+        <p role="status">{{ filtered().length }} resultado(s) de {{ rows().length }} · Página {{ page() + 1 }} de {{ pageCount() }}</p>
+        @if (rows().length) {
+          <div class="table-scroll">
+            <table>
+              <caption>{{ meta().title }} · Resultados detectados en {{ session.project }}</caption>
+              <thead><tr><th scope="col">Hallazgo</th><th scope="col">Condición / entrada</th><th scope="col">Acción / salida</th><th scope="col">Evidencia</th><th scope="col">Estado y alcance</th></tr></thead>
+              <tbody>
+                @for (row of visible(); track row.id) {
+                  <tr>
+                    <td><strong>{{ row.title }}</strong><small>{{ row.id }}</small></td>
+                    <td>{{ row.condition }}</td><td>{{ row.action }}</td>
+                    <td><code>{{ row.path }}{{ row.line ? ':' + row.line : '' }}</code><small>{{ row.evidence }}</small></td>
+                    <td>
+                      @if (section() === 'aprobar-reglas') {
+                        <label>Estado<select #decision [value]="store.decisions()[row.id]?.status ?? 'Pendiente'" (change)="decide(row.id, decision.value, note.value)">
+                          <option>Pendiente</option><option>Aprobada</option><option>Descartada</option>
+                        </select></label>
+                        <label>Observación<textarea #note maxlength="1000" [value]="store.decisions()[row.id]?.note ?? ''" (input)="decide(row.id, decision.value, note.value)" placeholder="Motivo o aclaración"></textarea></label>
+                      } @else if (section() === 'reglas') {
+                        <span class="badge">{{ store.decisions()[row.id]?.status ?? 'Pendiente' }}</span>
+                      }
+                      <small>{{ row.scope }}</small>
+                    </td>
+                  </tr>
+                } @empty { <tr><td colspan="5">No hay coincidencias para este filtro.</td></tr> }
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination"><button type="button" [disabled]="page() === 0" (click)="page.set(page() - 1)">Anterior</button><button type="button" [disabled]="page() + 1 >= pageCount()" (click)="page.set(page() + 1)">Siguiente</button></div>
+        } @else {
+          <div class="empty-results"><h2>Sin hallazgos detectados para este módulo</h2><p>Los patrones locales no encontraron resultados en los archivos compatibles. Esto no confirma que no existan reglas, problemas o relaciones adicionales. Revisa el inventario y los archivos omitidos.</p></div>
+        }
+        @if (section() === 'reglas') { <a class="primary-link" [routerLink]="link('decisiones/aprobar-reglas')">Revisar y aprobar reglas →</a> }
+      </section>
+    }
+    @if (section() === 'tecnologia') {
+      <section class="card">
+        <h2>Destino de la migración</h2>
+        <p>La selección se conserva durante esta sesión y se incluye en la documentación exportada.</p>
+        <label>Tecnología o stack elegido<input #technology maxlength="200" [value]="store.technology()" (input)="store.technology.set(technology.value)" placeholder="Ej.: Java 21 y Spring Boot" /></label>
+        <label>Justificación y restricciones<textarea #reason maxlength="3000" [value]="store.technologyReason()" (input)="store.technologyReason.set(reason.value)" placeholder="Compatibilidad, soporte, infraestructura y decisiones del equipo"></textarea></label>
+        <a [routerLink]="link('decisiones/arquitectura')">Ver arquitectura objetivo →</a>
+      </section>
+    }
+    @if (section() === 'arquitectura-objetivo') {
+      <section class="card">
+        @if (store.technology().trim() && approvedRules().length) {
+          <h2>Borrador para {{ store.technology() }}</h2>
+          <p>{{ store.technologyReason() || 'Justificación de tecnología pendiente.' }}</p>
+          <ol class="target-map" aria-label="Capas propuestas de la arquitectura objetivo">
+            <li><strong>Entradas y contratos</strong><span>Preservar y validar los contratos observados en el análisis.</span></li>
+            <li><strong>Aplicación</strong><span>Orquestar los casos de uso que el equipo confirme.</span></li>
+            <li><strong>Dominio</strong><span>{{ approvedRules().length }} regla(s) aprobada(s) a conservar.</span></li>
+            <li><strong>Adaptadores</strong><span>Evaluar las {{ session.report.dependencies.length }} dependencias declaradas y los accesos de datos.</span></li>
+          </ol>
+          <h3>Reglas que sustentan el borrador</h3>
+          <ul>@for (rule of approvedRules(); track rule.id) { <li>{{ rule.condition }} · <code>{{ rule.path }}:{{ rule.line }}</code></li> }</ul>
+          <p class="notice">Propuesta de capas para revisión. No es una arquitectura generada ni validada para producción.</p>
+        } @else {
+          <h2>Completa las decisiones previas</h2><p>Aprueba al menos una regla y selecciona una tecnología para preparar el borrador.</p>
+          <a [routerLink]="link('decisiones/aprobar-reglas')">Revisar reglas</a> · <a [routerLink]="link('decisiones/tecnologia')">Seleccionar tecnología</a>
+        }
+      </section>
+    }
+    @if (section() === 'exportar') {
+      <section class="card">
+        <h2>Entregables del proyecto</h2><p>El informe completo, CSV y Markdown pueden incluir fragmentos o expresiones del código. La opción sin fragmentos omite el código y las expresiones, pero conserva nombres y rutas.</p>
+        <div class="actions"><button type="button" (click)="download('json')">Informe completo JSON</button><button type="button" (click)="downloadSafeJson()">JSON sin fragmentos</button><button type="button" (click)="download('csv')">Matriz de reglas CSV</button><button type="button" (click)="download('md')">Documentación Markdown</button></div>
+      </section>
+    }
+    @if (section() === 'chat' || isTable()) {
+      <section class="card ai-panel">
+        <h2>{{ section() === 'chat' ? 'Consultar sobre el proyecto' : 'Interpretar resultados con Huawei' }}</h2>
+        <p>Al consultar se envían a Huawei hasta 30 hallazgos del contexto actual, hasta 15 dependencias y 10 reglas aprobadas. No se envían los archivos completos. La respuesta es una interpretación pendiente de revisión y no modifica la matriz.</p>
+        @if (section() === 'chat') {
+          @if (javaEntries().length) { <label>Limitar a un flujo Java (opcional)<select #chatFlow [value]="selectedJavaEntry()" (change)="selectedJavaEntry.set(chatFlow.value)"><option value="">Buscar en el proyecto</option>@for (method of javaEntries(); track method.id) { <option [value]="method.id">{{ method.className }}.{{ method.name }} · {{ method.path }}:{{ method.startLine }}</option> }</select></label> }
+          <div class="chat-history" aria-live="polite">
+            @for (message of store.messages(); track $index) { <article><strong>{{ message.question }}</strong><p class="answer">{{ message.answer }}</p></article> }
+          </div>
+          <label>Pregunta sobre el código analizado<textarea #prompt maxlength="2000" [value]="question()" (input)="question.set(prompt.value)" placeholder="¿Qué validaciones requieren revisión antes de migrar?"></textarea></label>
+        }
+        <button type="button" [disabled]="isAsking() || (section() === 'chat' && !question().trim())" (click)="askHuawei()">{{ isAsking() ? 'Consultando…' : 'Consultar Huawei' }}</button>
+        @if (isAsking()) { <p role="status">Esperando respuesta del modelo…</p> }
+        @if (aiError()) { <p role="alert" class="notice">{{ aiError() }}</p> }
+        @if (aiAnswer() && section() !== 'chat') { <p class="answer" aria-live="polite">{{ aiAnswer() }}</p> }
+      </section>
+    }
+    <p class="footnote">El informe y las decisiones se mantienen al cambiar de módulo. Recargar la página o seleccionar otro proyecto los elimina; exporta antes de salir. Análisis estático por patrones, sin ejecutar el código.</p>
+    }
+  } @else {
+    <section class="card empty-results"><h2>Primero analiza un proyecto</h2><p>Selecciona el código fuente y pulsa «Analizar». Los resultados de ese proyecto estarán disponibles en todos los módulos.</p><a class="primary-link" [routerLink]="link('codigo-fuente/proyecto')">Seleccionar proyecto</a></section>
+  }
+</section>

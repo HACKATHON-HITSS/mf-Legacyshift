@@ -1,0 +1,104 @@
+<section class="results" aria-labelledby="results-title">
+  <header>
+    <p class="eyebrow">Procesamiento en el navegador · Sin enviar archivos</p>
+    <h2 id="results-title">Resultado del análisis local</h2>
+    <p>Inventario y detección por patrones. No ejecuta código ni confirma reglas de negocio, vulnerabilidades o compatibilidad de migración.</p>
+    <button type="button" (click)="downloadReport()">Descargar informe completo (JSON)</button>
+    <p>La descarga contiene todas las filas, incluidas omisiones y advertencias; no contiene el código fuente.</p>
+  </header>
+  @if (report().analyzed === 0) {
+    <p class="notice" role="alert">No se pudo analizar contenido compatible. Revisa los formatos, omisiones y errores en el inventario.</p>
+  } @else if (report().errors > 0) {
+    <p class="notice" role="alert">El informe es parcial: algunos archivos no se pudieron leer. Revisa sus errores en el inventario.</p>
+  }
+  <dl class="stats">
+    <div><dt>Seleccionados</dt><dd>{{ report().files.length }}</dd></div>
+    <div><dt>Analizados</dt><dd>{{ report().analyzed }}</dd></div>
+    <div><dt>Omitidos</dt><dd>{{ report().skipped }}</dd></div>
+    <div><dt>Errores</dt><dd>{{ report().errors }}</dd></div>
+    <div><dt>Líneas de texto</dt><dd>{{ report().totalLines }}</dd></div>
+  </dl>
+  <section>
+    <h3>Lenguajes y formatos analizados</h3>
+    <p>Identificados por extensión; las líneas incluyen comentarios y líneas vacías.</p>
+    <ul class="language-list">
+      @for (language of report().languages; track language.name) {
+        <li><strong>{{ language.name }}</strong> · {{ language.files }} archivos · {{ language.lines }} líneas</li>
+      } @empty { <li>No se analizaron archivos de texto.</li> }
+    </ul>
+  </section>
+  <details open>
+    <summary>Dependencias declaradas o incluidas ({{ report().dependencies.length }})</summary>
+    <p>No se resuelven versiones heredadas, dependencias transitivas ni el uso real de los JAR.</p>
+    <div class="table-scroll">
+      <table>
+        <caption>Primeras 100 dependencias de {{ report().dependencies.length }}</caption>
+        <thead><tr><th scope="col">Dependencia</th><th scope="col">Origen</th><th scope="col">Archivo</th></tr></thead>
+        <tbody>
+          @for (item of report().dependencies.slice(0, 100); track $index) {
+            <tr><td>{{ item.name }}</td><td>{{ item.kind }}</td><td>{{ item.path }}</td></tr>
+          } @empty { <tr><td colspan="3">No se encontraron declaraciones compatibles. Esto no significa que el proyecto no tenga dependencias.</td></tr> }
+        </tbody>
+      </table>
+    </div>
+  </details>
+  <details>
+    <summary>Referencias externas en imports Java ({{ report().imports.length }})</summary>
+    <p>Se excluyen paquetes Java estándar y paquetes declarados en los archivos analizados. Una referencia no equivale a una dependencia Maven confirmada.</p>
+    <ul>
+      @for (item of report().imports.slice(0, 100); track $index) {
+        <li><strong>{{ item.name }}</strong> — {{ item.path }}:{{ item.line }}</li>
+      } @empty { <li>No se encontraron referencias externas en imports Java compatibles.</li> }
+    </ul>
+    <p>Se muestran hasta 100 referencias de {{ report().imports.length }}.</p>
+  </details>
+  <details open>
+    <summary>Posibles valores hardcodeados ({{ report().hardcoded.length }})</summary>
+    <p>Candidatos para revisión manual, no errores confirmados. Los valores y posibles credenciales no se muestran.</p>
+    <div class="table-scroll">
+      <table>
+        <caption>Primeros 100 candidatos de {{ report().hardcoded.length }}</caption>
+        <thead><tr><th scope="col">Hallazgo orientativo</th><th scope="col">Archivo y línea</th><th scope="col">Observación</th></tr></thead>
+        <tbody>
+          @for (item of report().hardcoded.slice(0, 100); track $index) {
+            <tr><td>{{ item.name }}</td><td>{{ item.path }}:{{ item.line }}</td><td>{{ item.kind }}</td></tr>
+          } @empty { <tr><td colspan="3">No se detectaron candidatos con los patrones actuales. No garantiza ausencia de datos hardcodeados.</td></tr> }
+        </tbody>
+      </table>
+    </div>
+  </details>
+  <details>
+    <summary>Entradas y salidas declaradas en WSDL 1.1 ({{ report().operations.length }})</summary>
+    <p>Operaciones de portType y nombres de mensajes. No infiere el flujo de ejecución ni el esquema completo.</p>
+    <div class="table-scroll">
+      <table>
+        <caption>Primeras 100 operaciones de {{ report().operations.length }}</caption>
+        <thead><tr><th scope="col">Operación</th><th scope="col">Entrada</th><th scope="col">Salida</th><th scope="col">Contrato</th></tr></thead>
+        <tbody>
+          @for (item of report().operations.slice(0, 100); track $index) {
+            <tr><td>{{ item.name }}</td><td>{{ item.input }}</td><td>{{ item.output }}</td><td>{{ item.path }}</td></tr>
+          } @empty { <tr><td colspan="4">No se encontraron operaciones WSDL 1.1. Otros contratos todavía no se interpretan.</td></tr> }
+        </tbody>
+      </table>
+    </div>
+  </details>
+  <details>
+    <summary>Estructura e inventario ({{ report().files.length }} archivos)</summary>
+    <p>El rol se estima por la ruta. No representa una arquitectura validada. Se muestran hasta 100 archivos de {{ report().files.length }}.</p>
+    <div class="table-scroll">
+      <table>
+        <caption>Inventario de archivos seleccionados</caption>
+        <thead><tr><th scope="col">Ruta</th><th scope="col">Formato / rol estimado</th><th scope="col">Estado</th><th scope="col">Detalle</th></tr></thead>
+        <tbody>
+          @for (file of report().files.slice(0, 100); track $index) {
+            <tr>
+              <td>{{ file.path }}</td><td>{{ file.language }} · {{ file.role }}</td>
+              <td>{{ file.status === 'analyzed' ? 'Analizado' : file.status === 'error' ? 'Error' : 'Omitido' }}</td>
+              <td>{{ file.detail || file.lines + ' líneas' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </details>
+</section>

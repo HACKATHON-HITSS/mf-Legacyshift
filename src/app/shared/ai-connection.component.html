@@ -1,0 +1,29 @@
+<div class="connection-widget">
+  <button type="button" class="connection-trigger" (click)="open.set(!open()); error.set(''); message.set('')" [attr.aria-expanded]="open()" aria-controls="ai-connection-panel">
+    <span class="indicator" [class.connected]="huawei.connection()?.verified"></span>
+    {{ huawei.connection()?.verified ? 'IA conectada' : huawei.connection()?.configured ? 'IA configurada' : 'Conectar con IA' }}
+  </button>
+  @if (open()) {
+    <section id="ai-connection-panel" class="panel" aria-labelledby="ai-connection-title">
+      <div class="panel-heading"><h2 id="ai-connection-title">Conectar con IA</h2><button type="button" class="close" (click)="open.set(false)" aria-label="Cerrar">×</button></div>
+      @if (huawei.connection(); as state) {
+        <p class="status" role="status">{{ state.verified ? 'Conectada y verificada' : state.configured ? 'Configurada en el servidor; conexión aún sin verificar' : 'Sin conexión configurada' }}{{ state.model ? ' · ' + state.model : '' }}</p>
+      } @else { <p class="status" role="status">El servicio de IA no está disponible. Inicia el servidor local.</p> }
+      <p>Configura Huawei MaaS para consultar desde los módulos. La prueba de conexión puede consumir tokens.</p>
+      <form (submit)="$event.preventDefault(); connect(aiUrl.value, aiModel.value, aiKey)">
+        <label for="ai-url">URL de Huawei</label>
+        <input #aiUrl id="ai-url" type="url" [value]="huawei.connection()?.url || huawei.defaultUrl" required autocomplete="url" />
+        <label for="ai-model">Modelo habilitado</label>
+        <input #aiModel id="ai-model" type="text" [value]="huawei.connection()?.model || 'glm-5.2'" required autocomplete="off" />
+        <p class="hint">Modelo de ejemplo: cámbialo si tu cuenta tiene habilitado otro.</p>
+        <label for="ai-key">API key</label>
+        <input #aiKey id="ai-key" type="password" required autocomplete="off" placeholder="Introduce tu llave" />
+        <p class="hint">La llave se mantiene en memoria del servicio local y se pierde al reiniciarlo. Es compartida por quienes usen ese servicio.</p>
+        <div class="actions"><button class="primary" type="submit" [disabled]="busy()">{{ busy() ? 'Verificando…' : 'Conectar y verificar' }}</button>
+          @if (huawei.connection()?.configured) { <button type="button" [disabled]="busy()" (click)="disconnect()">Desconectar</button> }</div>
+      </form>
+      @if (error()) { <p class="error" role="alert">{{ error() }}</p> }
+      @if (message()) { <p class="success" role="status">{{ message() }}</p> }
+    </section>
+  }
+</div>

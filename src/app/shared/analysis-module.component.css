@@ -1,0 +1,32 @@
+:host { display: block; min-width: 0; }
+.module-page { max-width: 1240px; margin: 0 auto; padding: 40px 28px; color: var(--guardian-text, #101828); }
+h1 { font-size: 28px; font-weight: 600; margin: 8px 0; } h2 { font-size: 19px; font-weight: 600; margin: 0 0 12px; } h3 { font-size: 15px; }
+p, small, dt, caption { color: var(--guardian-text-muted, #667085); font-size: 13px; line-height: 1.7; }
+.eyebrow { font-size: 12px; } a { color: var(--guardian-red, #c4261d); text-decoration: none; font-size: 13px; } a:hover { text-decoration: underline; }
+.card, .session-bar { background: #fff; border: 1px solid var(--guardian-border, #e1e4eb); border-radius: 12px; padding: 24px; margin: 20px 0; }
+.session-bar, .toolbar, .pagination, .actions { display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap; } .session-bar p { margin: 4px 0 0; }
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 20px 0; } .stats div { padding: 16px; background: #fff; border: 1px solid #e1e4eb; border-radius: 9px; } dd { font-size: 26px; margin: 4px 0 0; font-weight: 600; }
+.module-nav { display: flex; flex-wrap: wrap; gap: 8px; } .module-nav a { border: 1px solid #e1e4eb; border-radius: 20px; background: #fff; padding: 7px 12px; font-size: 12px; color: #475467; } .module-nav .active { color: #b42318; border-color: #f4c5c1; background: #fef0ee; }
+label { display: block; font-size: 12px; color: #475467; margin: 8px 0; } input, textarea, select { display: block; border: 1px solid #d0d5dd; border-radius: 7px; padding: 10px; background: #fff; color: #101828; font: inherit; width: 100%; box-sizing: border-box; margin-top: 6px; } textarea { min-height: 80px; resize: vertical; }
+.toolbar label { min-width: 260px; flex: 1; max-width: 500px; } button, .primary-link { padding: 10px 16px; border: 1px solid #e1e4eb; border-radius: 7px; background: #fff; color: #b42318; font: inherit; font-size: 13px; cursor: pointer; } .primary-link { display: inline-block; margin-top: 16px; background: #c4261d; color: #fff; } button:disabled { opacity: .5; cursor: default; }
+:is(button, a, input, select, textarea):focus-visible { outline: 2px solid #c4261d; outline-offset: 3px; }
+.table-scroll { overflow: auto; } table { border-collapse: collapse; width: 100%; text-align: left; font-size: 12px; } caption { text-align: left; padding-bottom: 12px; } th, td { padding: 12px; border-bottom: 1px solid #e1e4eb; vertical-align: top; min-width: 150px; max-width: 330px; overflow-wrap: anywhere; } th { background: #f8f9fb; } small { display: block; font-size: 11px; margin-top: 6px; } code { font-size: 11px; overflow-wrap: anywhere; white-space: pre-wrap; }
+.badge { display: inline-block; background: #fef0ee; color: #b42318; padding: 4px 9px; border-radius: 12px; font-size: 11px; } .pagination { justify-content: flex-end; margin-top: 18px; }
+.notice { padding: 12px; border: 1px solid #fed7aa; background: #fffbeb; color: #92400e; border-radius: 8px; } .empty-results { text-align: center; padding: 40px 24px; } .empty-results p { max-width: 660px; margin: 12px auto; }
+.component-map { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; } .component-map div { padding: 18px; border: 1px solid #f4c5c1; border-radius: 9px; background: #fff8f7; font-size: 13px; } .component-map span, .target-map span { display: block; margin-top: 6px; font-size: 12px; color: #667085; }
+.target-map { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; padding-left: 20px; } .target-map li { padding: 16px; border: 1px solid #f4c5c1; border-radius: 9px; font-size: 13px; }
+.answer { white-space: pre-wrap; overflow-wrap: anywhere; padding: 16px; border-radius: 8px; background: #f8f9fb; color: #344054; } .chat-history article { margin-bottom: 20px; font-size: 14px; } .footnote { font-size: 12px; }
+.hardcoded-stats { grid-template-columns: repeat(3, 1fr); }
+.source-snippet { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 350px; overflow: auto; background: #f8f9fb; padding: 16px; border: 1px solid #e1e4eb; border-radius: 8px; font-size: 12px; }
+.flow-canvas { padding: 28px 14px; background: #f8f9fb; border: 1px solid #e1e4eb; border-radius: 10px; display: flex; align-items: center; flex-direction: column; }
+.flow-node { width: min(100%, 410px); text-align: center; padding: 14px; border: 1px solid #d0d5dd; border-radius: 9px; background: white; box-sizing: border-box; font-size: 13px; }
+.flow-node code { display: block; margin-top: 4px; } .flow-terminal { border-radius: 30px; border-color: #f4c5c1; background: #fef0ee; color: #b42318; width: 220px; }
+.flow-decision { border-color: #eaaa08; background: #fffaeb; } .flow-arrow, .flow-merge { color: #667085; padding: 6px; font-size: 14px; }
+.flow-branches { width: min(100%, 850px); display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 12px; } .flow-branch { display: flex; flex-direction: column; align-items: center; gap: 6px; color: #475467; font-size: 13px; } .flow-empty { color: #667085; border-style: dashed; }
+.java-graph { display: grid; gap: 10px; margin: 18px 0; } .java-node { border: 1px solid #e1e4eb; border-radius: 9px; padding: 12px; background: #f8f9fb; } .java-node > button { width: 100%; text-align: left; display: flex; justify-content: space-between; gap: 8px; } .java-node summary { cursor: pointer; } .java-edge { border-left: 2px dashed #c4261d; margin: 8px 0 0 8px; padding: 4px 12px; font-size: 12px; overflow-wrap: anywhere; }
+.business-rule { margin: 18px 0; padding: 18px; border: 1px solid #e1e4eb; border-radius: 9px; background: #fafbfc; }
+.hardcoded-chart { display: grid; gap: 8px; max-height: 420px; overflow-y: auto; }
+.chart-row { display: grid; grid-template-columns: minmax(140px, 2fr) minmax(100px, 3fr) 36px; gap: 14px; align-items: center; width: 100%; text-align: left; color: #344054; border: 0; padding: 8px; }
+.chart-row:hover { background: #f9fafb; }
+.chart-path { overflow-wrap: anywhere; font-size: 12px; } .chart-track { display: block; height: 12px; background: #f2f4f7; border-radius: 8px; } .chart-bar { display: block; height: 100%; background: #c4261d; border-radius: 8px; } .chart-row strong { color: #b42318; text-align: right; }
+@media (max-width: 760px) { .module-page { padding: 24px 16px; } .card { padding: 16px; } .stats, .target-map { grid-template-columns: repeat(2, 1fr); } h1 { font-size: 24px; } .toolbar label { min-width: 0; width: 100%; } }

@@ -1,0 +1,11 @@
+@import 'tailwindcss';
+@source './**/*.{html,ts}';
+@layer base {
+ app-mf-pr-guardian-ai-root { display:block; width:100%; font-family:var(--guardian-font-family), 'Segoe UI', sans-serif; color:#22324a; }
+ body { margin:0; background:#f7f8fb; }
+}
+
+:root {
+ --guardian-font-family: 'Segoe UI', sans-serif; --guardian-white:#ffffff; --guardian-red:#c42b22; --guardian-red-dark:#9f1c16;
+ --guardian-gray-bg:#f3f4f6; --guardian-border:#e5e7eb; --guardian-text-main:#111827; --guardian-text-muted:#6b7280;
+}

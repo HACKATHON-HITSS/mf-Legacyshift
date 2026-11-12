@@ -1,0 +1,5 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist/mf-PR-Guardian-AI/browser",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}

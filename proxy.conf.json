@@ -1,0 +1,17 @@
+{
+  "/bitbucket-api/**": {
+    "target": "http://172.19.113.113",
+    "changeOrigin": true,
+    "pathRewrite": { "^/bitbucket-api": "" }
+  },
+  "/sonarqube-api/**": {
+    "target": "http://172.19.245.21:9000/sonarqube",
+    "changeOrigin": true,
+    "pathRewrite": { "^/sonarqube-api": "" }
+  },
+  "/huawei-maas-api/**": {
+    "target": "https://api-ap-southeast-1.modelarts-maas.com/openai/v1",
+    "changeOrigin": true,
+    "pathRewrite": { "^/huawei-maas-api": "" }
+  }
+}

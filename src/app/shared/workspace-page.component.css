@@ -1,0 +1,5 @@
+:host{display:block;min-width:0;color:var(--guardian-text-main);font-family:var(--guardian-font-family),sans-serif}
+.workspace{padding:24px}
+.eyebrow{margin:0;color:var(--guardian-text-muted);font-size:12px;letter-spacing:1px}
+h1{margin:8px 0 16px;font-size:28px}
+.empty-state{margin:0;color:var(--guardian-text-muted)}
