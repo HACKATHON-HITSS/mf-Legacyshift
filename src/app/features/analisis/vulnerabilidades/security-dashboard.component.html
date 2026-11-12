@@ -5,13 +5,12 @@
       <button class="export-button" type="button" (click)="exportIndicators()">Exportar indicadores <span aria-hidden="true">↓</span></button>
     </header>
     <form class="dashboard-filters" #filters (submit)="$event.preventDefault()" aria-label="Filtros de demostración">
-      <label>Seleccionar PR<select aria-label="Seleccionar PR"><option>Todos los PR</option></select></label>
       <label>Proyecto<select aria-label="Proyecto"><option>Todos</option></select></label>
       <label>Desarrollador<select aria-label="Desarrollador"><option>Todos</option></select></label>
       <label>Mes de creación<select aria-label="Mes de creación"><option>Todo el periodo</option></select></label>
       <button class="clear-button" type="button" (click)="filters.reset()">Limpiar filtros</button>
     </form>
-    <div class="dashboard-context"><label for="minimum-coverage">Cobertura mínima requerida</label><select id="minimum-coverage"><option>80%</option></select><span>36 de 36 PR · agosto–octubre 2026</span><span class="fixed-data-note">Indicadores fijos de ejemplo</span></div>
+    <div class="dashboard-context"><label for="minimum-coverage">Cobertura mínima requerida</label><select id="minimum-coverage"><option>80%</option></select><span>36 de 36 PR · agosto–octubre 2026</span></div>
     <dl class="dashboard-indicators" aria-label="Indicadores de seguridad de demostración">
       @for (indicator of indicators; track indicator.label) {
         <div class="dashboard-indicator" [class.danger]="indicator.tone === 'danger'" [class.success]="indicator.tone === 'success'"><dt>{{ indicator.label }}</dt><dd>{{ indicator.value }}</dd><p>{{ indicator.detail }}</p></div>

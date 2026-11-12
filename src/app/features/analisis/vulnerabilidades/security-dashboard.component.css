@@ -10,7 +10,7 @@ h1 { margin: 0; font-size: 28px; font-weight: 750; line-height: 1.3; letter-spac
 button, select { font: inherit; font-size: 11px; }
 button { cursor: pointer; }
 .export-button { border: 1px solid #e1e4eb; border-radius: 5px; background: white; color: #111827; padding: 13px 15px; white-space: nowrap; }
-.dashboard-filters { display: grid; grid-template-columns: minmax(220px, 1.6fr) repeat(3, minmax(140px, 1fr)) auto; align-items: end; gap: 16px; background: white; border: 1px solid #e1e4eb; border-radius: 8px; padding: 20px; }
+.dashboard-filters { display: grid; grid-template-columns: repeat(3, minmax(140px, 1fr)) auto; align-items: end; gap: 16px; background: white; border: 1px solid #e1e4eb; border-radius: 8px; padding: 20px; }
 .dashboard-filters label { display: grid; gap: 8px; min-width: 0; font-size: 10px; color: #111827; }
 select { width: 100%; min-width: 0; height: 39px; border: 1px solid #bbc5d5; border-radius: 5px; background: #fff; color: #111827; padding: 0 12px; }
 .clear-button { height: 39px; border: 0; background: transparent; color: #c4261d; white-space: nowrap; padding: 0; }

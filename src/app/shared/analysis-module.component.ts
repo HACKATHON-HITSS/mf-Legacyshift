@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, ElementRef, inject, input, signal, viewChild } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { Router, RouterLink } from '@angular/router';
 import { AnalysisSessionService, RuleDecision, MvpRuleStatus } from './analysis-session.service';
@@ -15,6 +15,8 @@ import { presentTechnicalDebt } from './technical-debt-presentation';
 import { JavaTestService } from './java-test.service';
 import { SecurityReviewService } from './security-review.service';
 import { createSecurityDemo } from './security-demo';
+import { MIGRATION_ARCHETYPES, MIGRATION_ARCHITECTURES, MigrationTarget } from './migration-target';
+import { createProjectStructureZip } from './project-structure.agent';
 
 type ResultRow = { id: string; title: string; condition: string; action: string; path: string; line: number; evidence: string; scope: string };
 
@@ -28,6 +30,19 @@ type ResultRow = { id: string; title: string; condition: string; action: string;
 export class AnalysisModuleComponent {
   readonly section = input.required<SectionKey>();
   readonly store = inject(AnalysisSessionService);
+  readonly migrationPreparing = signal(false);
+  readonly migrationProgress = signal(0);
+  private readonly migrationDialog = viewChild<ElementRef<HTMLDialogElement>>('migrationDialog');
+  private migrationTick?: ReturnType<typeof setInterval>;
+  private migrationFinish?: ReturnType<typeof setTimeout>;
+  constructor() { inject(DestroyRef).onDestroy(() => this.clearMigrationTimers()); }
+  readonly migrationArchitectures = MIGRATION_ARCHITECTURES;
+  readonly migrationArchetypes = computed(() => MIGRATION_ARCHETYPES.filter(item => item.architecture === this.store.migrationTarget().architecture));
+  readonly migrationReady = computed(() => {
+    const target = this.store.migrationTarget();
+    return !!target.architecture && this.migrationArchetypes().some(item => item.id === target.archetype) &&
+      (target.architecture === 'microfrontends' || ['8', '11', '17', '21', '25'].includes(target.javaVersion));
+  });
   readonly javaTests = inject(JavaTestService);
   readonly securityReview = inject(SecurityReviewService);
   private readonly securityDemo = createSecurityDemo();
@@ -241,6 +256,54 @@ export class AnalysisModuleComponent {
   }
 
   filter(value: string): void { this.search.set(value); this.page.set(0); }
+  setMigrationTarget(key: keyof MigrationTarget, value: string): void {
+    if (this.migrationPreparing()) return;
+    this.store.migrationTarget.update(target => ({ ...target, [key]: value,
+      ...(key === 'architecture' ? { archetype: '', ...(value === 'microfrontends' ? { javaVersion: '' } : {}) } : {}) }));
+    this.store.migrationPlan.set(null);
+  }
+  prepareMigration(): void {
+    const session = this.store.session();
+    if (!session || !this.migrationReady() || this.migrationPreparing()) return;
+    const target = { ...this.store.migrationTarget(), projectName: this.store.migrationTarget().projectName.trim() };
+    const architectureLabel = MIGRATION_ARCHITECTURES.find(item => item.id === target.architecture)!.label;
+    const archetypeLabel = this.migrationArchetypes().find(item => item.id === target.archetype)!.label;
+    this.store.migrationPlan.set(null);
+    this.migrationProgress.set(0); this.migrationPreparing.set(true);
+    const dialog = this.migrationDialog()?.nativeElement;
+    if (dialog && typeof dialog.showModal === 'function') dialog.showModal();
+    else dialog?.setAttribute('open', '');
+    const started = Date.now();
+    this.migrationTick = setInterval(() => {
+      if (this.store.session() !== session) { this.finishMigrationSimulation(); return; }
+      this.migrationProgress.set(Math.min(100, Math.floor((Date.now() - started) / 145)));
+    }, 100);
+    this.migrationFinish = setTimeout(() => {
+      if (this.store.session() === session) this.store.migrationPlan.set({ project: session.project, target, architectureLabel, archetypeLabel, createdAt: new Date().toISOString(), steps: [
+      target.architecture === 'microfrontends' ? 'Definir los límites de los microfrontends y su integración con el contenedor.' : `Revisar la compatibilidad del código y las dependencias con Java ${target.javaVersion}.`,
+      `Validar la plantilla y las dependencias del arquetipo: ${archetypeLabel}.`,
+      'Mapear las reglas de negocio, contratos e integraciones que deben conservarse.',
+      'Planificar los cambios de código y las pruebas de regresión antes de ejecutar la migración.'
+      ] });
+      this.finishMigrationSimulation();
+    }, 15_000);
+  }
+  private clearMigrationTimers(): void {
+    clearInterval(this.migrationTick); clearTimeout(this.migrationFinish);
+  }
+  private finishMigrationSimulation(): void {
+    this.clearMigrationTimers();
+    const dialog = this.migrationDialog()?.nativeElement;
+    if (dialog && typeof dialog.close === 'function') dialog.close();
+    else dialog?.removeAttribute('open');
+    this.migrationPreparing.set(false);
+  }
+  downloadProjectStructure(): void {
+    const zip = createProjectStructureZip();
+    const url = URL.createObjectURL(new Blob([new Uint8Array(zip)], { type: 'application/zip' }));
+    const anchor = document.createElement('a'); anchor.href = url; anchor.download = 'SimcardsApp.zip'; anchor.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  }
   setSecurityDemo(enabled: boolean): void {
     if (enabled && this.store.aiSecurityReview()?.status === 'running') this.securityReview.cancel();
     this.store.securityDemoEnabled.set(enabled);

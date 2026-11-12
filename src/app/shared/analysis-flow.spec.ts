@@ -22,7 +22,7 @@ describe('Project analysis flow', () => {
     TestBed.configureTestingModule({ providers: [provideZonelessChangeDetection(), provideRouter(routes)] });
     vi.spyOn(TestBed.inject(SecurityReviewService), 'start').mockResolvedValue();
   });
-  afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); TestBed.resetTestingModule(); });
+  afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); TestBed.resetTestingModule(); });
 
   it('shares one report across all modules and preserves approvals across navigation', async () => {
     const fixture = TestBed.createComponent(AppComponent);
@@ -227,6 +227,71 @@ describe('Project analysis flow', () => {
     fixture.componentInstance.setSecurityDemo(false); fixture.detectChanges();
     expect(fixture.componentInstance.securityReviewResult()).toBeNull();
     expect(store.javaTests()).toBeNull();
+  });
+
+  it('prepares a migration plan with compatible selectors and invalidates it when the target changes', async () => {
+    const store = TestBed.inject(AnalysisSessionService);
+    store.complete('Demo', await exampleReport());
+    const fixture = TestBed.createComponent(AnalysisModuleComponent);
+    fixture.componentRef.setInput('section', 'arquitectura-objetivo');
+    fixture.detectChanges();
+    vi.useFakeTimers();
+    const component = fixture.componentInstance;
+    const projectName = fixture.nativeElement.querySelector('.migration-project-name input') as HTMLInputElement;
+    projectName.value = '  proyecto-nuevo  ';
+    projectName.dispatchEvent(new Event('input'));
+    component.setMigrationTarget('javaVersion', '21');
+    component.setMigrationTarget('architecture', 'microservices');
+    component.setMigrationTarget('archetype', 'microservice-hexagonal');
+    expect(component.migrationReady()).toBe(true);
+    component.prepareMigration(); fixture.detectChanges();
+    expect(component.migrationPreparing()).toBe(true);
+    expect(projectName.disabled).toBe(true);
+    expect(component.migrationProgress()).toBe(0);
+    const dialog = fixture.nativeElement.querySelector('.migration-dialog') as HTMLDialogElement;
+    expect(dialog.textContent).toContain('Procesando');
+    expect(dialog.textContent).toContain('Este proceso puede tardar aproximadamente 15 segundos.');
+    expect(dialog.textContent).not.toContain('Simulación');
+    expect(fixture.nativeElement.textContent).not.toContain('Descargar SimcardsApp.zip');
+    expect(store.migrationPlan()).toBeNull();
+    vi.advanceTimersByTime(7500);
+    expect(component.migrationProgress()).toBeGreaterThan(0);
+    expect(component.migrationProgress()).toBeLessThan(100);
+    vi.advanceTimersByTime(7000);
+    expect(component.migrationProgress()).toBe(100);
+    expect(component.migrationPreparing()).toBe(true);
+    vi.advanceTimersByTime(500); fixture.detectChanges();
+    expect(component.migrationPreparing()).toBe(false);
+    expect(store.exportData().target.plan?.target.javaVersion).toBe('21');
+    expect(store.exportData().target.plan?.target.projectName).toBe('proyecto-nuevo');
+    expect(fixture.nativeElement.textContent).toContain('Plan preparado');
+    expect(fixture.nativeElement.querySelector('.migration-plan')).toBeNull();
+    let exported: Uint8Array | undefined;
+    vi.stubGlobal('Blob', class { constructor(parts: Uint8Array[]) { exported = parts[0]; } });
+    vi.stubGlobal('URL', { createObjectURL: () => 'blob:test', revokeObjectURL: () => undefined });
+    let filename = '';
+    const click = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) { filename = this.download; });
+    const downloadButton = Array.from(fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>).find(button => button.textContent?.includes('Descargar SimcardsApp.zip'));
+    expect(downloadButton).toBeDefined();
+    downloadButton!.click();
+    expect(exported?.length).toBeGreaterThan(0);
+    expect(filename).toBe('SimcardsApp.zip');
+    expect(click).toHaveBeenCalledOnce();
+    projectName.value = 'otro-proyecto';
+    projectName.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(store.migrationPlan()).toBeNull();
+    expect(fixture.nativeElement.textContent).not.toContain('Descargar SimcardsApp.zip');
+    component.setMigrationTarget('architecture', 'microfrontends');
+    expect(store.migrationTarget().javaVersion).toBe('');
+    expect(component.migrationReady()).toBe(false);
+    component.setMigrationTarget('archetype', 'microfront-angular');
+    expect(component.migrationReady()).toBe(true);
+    component.prepareMigration();
+    vi.advanceTimersByTime(15000);
+    expect(store.migrationPlan()?.architectureLabel).toBe('Microfrontends');
+    store.clear(); expect(store.migrationPlan()).toBeNull();
+    expect(store.migrationTarget().projectName).toBe('');
   });
 
   it('shows HTTP verbs and routes separately from SOAP and filters the operation map', async () => {

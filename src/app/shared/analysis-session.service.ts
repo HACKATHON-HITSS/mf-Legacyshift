@@ -3,6 +3,7 @@ import { LocalAnalysisReport } from '../features/codigo-fuente/proyecto/local-pr
 import { BusinessDiscovery } from './business-discovery';
 import { JavaTestResult } from './java-test-result';
 import { AiSecurityReview } from './security-review.agent';
+import { MigrationPlan, MigrationTarget } from './migration-target';
 
 export type RuleDecision = 'Pendiente' | 'Aprobada' | 'Descartada';
 export type MvpRuleStatus = 'PENDING' | 'VALIDATED' | 'REJECTED' | 'UNDER_INVESTIGATION';
@@ -24,6 +25,8 @@ export class AnalysisSessionService {
   readonly securityDemoEnabled = signal(false);
   readonly technology = signal('');
   readonly technologyReason = signal('');
+  readonly migrationTarget = signal<MigrationTarget>({ projectName: '', javaVersion: '', architecture: '', archetype: '' });
+  readonly migrationPlan = signal<MigrationPlan | null>(null);
   readonly messages = signal<{ question: string; answer: string }[]>([]);
 
   complete(project: string, report: LocalAnalysisReport): void {
@@ -45,6 +48,8 @@ export class AnalysisSessionService {
     this.securityDemoEnabled.set(false);
     this.technology.set('');
     this.technologyReason.set('');
+    this.migrationTarget.set({ projectName: '', javaVersion: '', architecture: '', archetype: '' });
+    this.migrationPlan.set(null);
     this.messages.set([]);
   }
 
@@ -56,7 +61,7 @@ export class AnalysisSessionService {
   exportData() {
     return {
       schemaVersion: 1, analysis: this.session(), decisions: this.decisions(), ruleStatuses: this.ruleStatuses(), ruleNotes: this.ruleNotes(), ruleInterpretations: this.ruleInterpretations(), businessDiscoveries: this.businessDiscoveries(), javaTests: this.javaTests(), aiSecurityReview: this.aiSecurityReview(),
-      target: { technology: this.technology(), reason: this.technologyReason() },
+      target: { technology: this.technology(), reason: this.technologyReason(), migration: this.migrationTarget(), plan: this.migrationPlan() },
       limitations: 'El informe distingue detección estática local, revisión con IA y pruebas Java, cuando están disponibles. Las conclusiones de IA son propuestas, no pruebas ejecutadas. Ningún resultado demuestra ausencia de riesgos.'
     };
   }

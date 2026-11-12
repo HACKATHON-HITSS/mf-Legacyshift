@@ -2,14 +2,14 @@
   <header>
     <p class="eyebrow">Legacyshift · {{ section() === 'aprobar-reglas' || !isTable() ? 'Decisiones' : 'Análisis' }}</p>
     <h1 id="module-title">{{ meta().title }}</h1>
-    @if (section() !== 'datos-hardcodeados' && section() !== 'reglas' && section() !== 'logica') { <p>{{
+    @if (section() !== 'datos-hardcodeados' && section() !== 'reglas' && section() !== 'logica' && section() !== 'chat' && section() !== 'arquitectura-objetivo') { <p>{{
       meta().description }}</p> }
     @if (section() === 'logica') { <p>Visualiza el orden y las decisiones de los bloques que se pudieron reconstruir.
     </p> }
     @if (section() === 'reglas') { <p></p> }
   </header>
   @if (store.session(); as session) {
-  @if (section() !== 'reglas' && section() !== 'entradas-salidas' && section() !== 'deuda-tecnica' && section() !== 'vulnerabilidades') {
+  @if (section() !== 'reglas' && section() !== 'entradas-salidas' && section() !== 'deuda-tecnica' && section() !== 'vulnerabilidades' && section() !== 'chat' && section() !== 'arquitectura-objetivo') {
   <div class="session-bar">
     <div><strong>{{ session.project }}</strong>
       <p>Analizado {{ session.completedAt | date:'dd/MM/yyyy HH:mm' }} · Sesión en memoria</p>
@@ -563,6 +563,7 @@
     }
   </section>
   } @else {
+  @if (section() !== 'chat' && section() !== 'arquitectura-objetivo') {
   <dl class="stats">
     <div>
       <dt>Archivos analizados</dt>
@@ -585,7 +586,8 @@
   <p class="notice" role="status">No se pudo analizar ningún archivo compatible. Selecciona código fuente de texto; los
     archivos ZIP, JAR, PDF y Word no se interpretan.</p>
   }
-  @if (section() !== 'vulnerabilidades') {
+  }
+  @if (section() !== 'vulnerabilidades' && section() !== 'chat' && section() !== 'arquitectura-objetivo') {
   <nav class="module-nav" aria-label="Resultados del análisis">
     @for (item of analysisSections; track item.key) {
     <a [class.active]="section() === item.key" [attr.aria-current]="section() === item.key ? 'page' : null"
@@ -763,28 +765,34 @@
   </section>
   }
   @if (section() === 'arquitectura-objetivo') {
-  <section class="card">
-    @if (store.technology().trim() && approvedRules().length) {
-    <h2>Borrador para {{ store.technology() }}</h2>
-    <p>{{ store.technologyReason() || 'Justificación de tecnología pendiente.' }}</p>
-    <ol class="target-map" aria-label="Capas propuestas de la arquitectura objetivo">
-      <li><strong>Entradas y contratos</strong><span>Preservar y validar los contratos observados en el análisis.</span>
-      </li>
-      <li><strong>Aplicación</strong><span>Orquestar los casos de uso que el equipo confirme.</span></li>
-      <li><strong>Dominio</strong><span>{{ approvedRules().length }} regla(s) aprobada(s) a conservar.</span></li>
-      <li><strong>Adaptadores</strong><span>Evaluar las {{ session.report.dependencies.length }} dependencias declaradas
-          y los accesos de datos.</span></li>
-    </ol>
-    <h3>Reglas que sustentan el borrador</h3>
-    <ul>@for (rule of approvedRules(); track rule.id) { <li>{{ rule.condition }} ·
-        <code>{{ rule.path }}:{{ rule.line }}</code>
-      </li> }</ul>
-    <p class="notice">Propuesta de capas para revisión. No es una arquitectura generada ni validada para producción.</p>
-    } @else {
-    <h2>Completa las decisiones previas</h2>
-    <p>Aprueba al menos una regla y selecciona una tecnología para preparar el borrador.</p>
-    <a [routerLink]="link('decisiones/aprobar-reglas')">Revisar reglas</a> · <a
-      [routerLink]="link('decisiones/tecnologia')">Seleccionar tecnología</a>
+  <dialog #migrationDialog class="migration-dialog" aria-labelledby="migration-loading-title" aria-describedby="migration-loading-description" (cancel)="$event.preventDefault()">
+    <div class="migration-loader" aria-hidden="true"></div>
+    <span class="migration-status-label">Procesando</span>
+    <h2 id="migration-loading-title">Preparando migración</h2>
+    <p id="migration-loading-description">Estamos preparando el plan con la configuración seleccionada.</p>
+    <strong class="migration-percentage">{{ migrationProgress() }}%</strong>
+    <progress class="migration-progress" aria-label="Progreso de preparación" max="100" [value]="migrationProgress()"></progress>
+    <p class="migration-loading-note">Este proceso puede tardar aproximadamente 15 segundos.</p>
+  </dialog>
+  <section class="card migration-card">
+    <h2>Configurar destino de migración</h2>
+    <p>Selecciona la versión y el tipo de solución que quieres preparar.</p>
+    <label class="migration-project-name">Nombre del proyecto destino (opcional)<input #targetProjectName type="text" maxlength="200" [value]="store.migrationTarget().projectName" [disabled]="migrationPreparing()" (input)="setMigrationTarget('projectName', targetProjectName.value)" placeholder="Ej.: mi-proyecto" /></label>
+    <div class="migration-selects">
+      <label>Versión de Java<select #targetJava [value]="store.migrationTarget().javaVersion" [disabled]="store.migrationTarget().architecture === 'microfrontends'" (change)="setMigrationTarget('javaVersion', targetJava.value)"><option value="">{{ store.migrationTarget().architecture === 'microfrontends' ? 'No aplica al frontend' : 'Selecciona una versión' }}</option>@for (version of ['8', '11', '17', '21', '25']; track version) { <option [value]="version">Java {{ version }}</option> }</select></label>
+      <label>Arquitectura de destino<select #targetArchitecture [value]="store.migrationTarget().architecture" (change)="setMigrationTarget('architecture', targetArchitecture.value)"><option value="">Selecciona una arquitectura</option>@for (architecture of migrationArchitectures; track architecture.id) { <option [value]="architecture.id">{{ architecture.label }}</option> }</select></label>
+      <label>Arquetipo / plantilla<select #targetArchetype [value]="store.migrationTarget().archetype" [disabled]="!store.migrationTarget().architecture" (change)="setMigrationTarget('archetype', targetArchetype.value)"><option value="">Selecciona un arquetipo</option>@for (archetype of migrationArchetypes(); track archetype.id) { <option [value]="archetype.id">{{ archetype.label }}</option> }</select></label>
+    </div>
+    <p class="migration-note">Catálogo inicial de plantillas de referencia. La compatibilidad y las versiones de sus dependencias deben validarse antes de generar código.</p>
+    <div class="target-actions">
+      <button class="migration-primary" type="button" [disabled]="!migrationReady() || migrationPreparing()" (click)="prepareMigration()">Preparar migración</button>
+      @if (store.migrationPlan()) {
+        <span role="status">Plan preparado.</span>
+        <button type="button" (click)="downloadProjectStructure()">Descargar SimcardsApp.zip</button>
+      }
+    </div>
+    @if (store.migrationPlan()) {
+      <p class="migration-note">El ZIP contiene una estructura de referencia con archivos vacíos; no es un proyecto ejecutable. El nombre del ZIP es fijo y no depende de la configuración seleccionada.</p>
     }
   </section>
   }
@@ -828,8 +836,10 @@
     @if (aiAnswer() && section() !== 'chat') { <p class="answer" aria-live="polite">{{ aiAnswer() }}</p> }
   </section>
   }
+  @if (section() !== 'arquitectura-objetivo') {
   <p class="footnote">El informe y las decisiones se mantienen al cambiar de módulo. Recargar la página o seleccionar
     otro proyecto los elimina; exporta antes de salir. El detector local y MaaS revisan código; las pruebas Java sí lo ejecutan cuando están configuradas.</p>
+  }
   }
   } @else {
   <section class="card empty-results">
