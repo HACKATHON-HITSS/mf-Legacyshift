@@ -31,6 +31,39 @@ describe('Code evidence extraction', () => {
     expect(findings.find(item => item.category === 'vulnerabilidades')?.limitation).toContain('no se ha comprobado');
     expect(findings.some(item => item.category === 'deuda-tecnica')).toBe(true);
   });
+  it('detects hardcoded credentials and SQL injection patterns', () => {
+    const code = 'const password = "admin123";\nconst query = "SELECT * FROM users WHERE id = " + userId;';
+    const findings = extractCodeFindings(code, 'auth.js', 'JavaScript');
+    expect(findings.some(item => item.category === 'vulnerabilidades' && item.title.includes('Credencial'))).toBe(true);
+    expect(findings.some(item => item.category === 'vulnerabilidades' && item.title.includes('SQL'))).toBe(true);
+  });
+  it('detects XSS and eval vulnerabilities', () => {
+    const xssCode = 'document.innerHTML = userInput;';
+    const xssFindings = extractCodeFindings(xssCode, 'page.js', 'JavaScript');
+    expect(xssFindings.some(item => item.category === 'vulnerabilidades')).toBe(true);
+    
+    const evalCode = 'const obj = eval(data);';
+    const evalFindings = extractCodeFindings(evalCode, 'parser.js', 'JavaScript');
+    expect(evalFindings.some(item => item.category === 'vulnerabilidades')).toBe(true);
+  });
+  it('detects eval and script execution vulnerabilities', () => {
+    const evalCode = 'eval(userInput);';
+    const evalFindings = extractCodeFindings(evalCode, 'server.js', 'JavaScript');
+    expect(evalFindings.some(item => item.category === 'vulnerabilidades' && item.title.includes('sensible'))).toBe(true);
+    
+    const adminCode = 'admin = "admin"; password = "admin123"';
+    const adminFindings = extractCodeFindings(adminCode, 'config.js', 'JavaScript');
+    expect(adminFindings.some(item => item.category === 'vulnerabilidades')).toBe(true);
+  });
+  it('detects sensitive operations and weak cryptography', () => {
+    const md5Code = 'const hash = md5(password);';
+    const md5Findings = extractCodeFindings(md5Code, 'crypto.js', 'JavaScript');
+    expect(md5Findings.some(item => item.category === 'vulnerabilidades' && item.title.includes('hash débil'))).toBe(true);
+    
+    const execCode = 'Runtime.getRuntime().exec(command);';
+    const execFindings = extractCodeFindings(execCode, 'util.java', 'Java');
+    expect(execFindings.some(item => item.category === 'vulnerabilidades' && item.title.includes('sensible'))).toBe(true);
+  });
   it('omits sensitive values from displayed or exported evidence', () => {
     expect(redactEvidence('if (token === "private-value") reject();')).not.toContain('private-value');
     expect(redactEvidence('password = unquoted-secret')).not.toContain('unquoted-secret');

@@ -84,12 +84,61 @@ export function extractCodeFindings(text: string, path: string, language: string
     if (/\b(?:md5|sha1)\s*\(/i.test(line)) {
       add('vulnerabilidades', index, 'Algoritmo hash débil para usos criptográficos', 'Uso de MD5 / SHA-1', 'Verificar finalidad y sustituir si protege información', 'Media', 'Puede tener usos no criptográficos legítimos.');
     }
+    if (/\b(?:password|passwd|api[_-]?key|secret|token|credential)\s*[:=]|(?:password|passwd|api[_-]?key|secret|token)\s*=\s*["'][^"']*["']/.test(line)) {
+      add('vulnerabilidades', index, 'Credencial o contraseña hardcodeada', 'Valor sensible asignado literalmente en el código', 'Extraer a variables de entorno o gestor de secretos', 'Alta', 'Riesgo crítico si se expone en control de versiones o logs.');
+    }
+    if (/(?:\b(?:sql|query|command|statement)\s*[:=].*[\+\.]|concatenation de.*sql|sql\s+injection|strcat|sprintf|String\.format|SELECT.*\+|INSERT.*\+|UPDATE.*\+|DELETE.*\+).*(?:SELECT|INSERT|UPDATE|DELETE|DROP|EXEC|FROM)?/i.test(line)) {
+      add('vulnerabilidades', index, 'Concatenación SQL potencial', 'Construcción dinámica de consultas SQL sin prepared statements', 'Usar consultas parametrizadas y prepared statements', 'Alta', 'Riesgo de SQL injection si se incluyen valores del usuario sin sanitizar.');
+    }
+    if (/\b(?:deserialize|unserialize|pickle\.loads|loads|JSON\.parse.*eval|ObjectInputStream)\s*\(/.test(line)) {
+      add('vulnerabilidades', index, 'Deserialización insegura', 'Deserialización de datos no confiables', 'Validar y sanitizar datos antes de deserializar; usar formatos seguros', 'Alta', 'Riesgo de inyección de código o remote code execution si los datos provienen del usuario.');
+    }
+    if (/\b(?:setDefaultCloseOperation|EXIT_ON_CLOSE|setSecurityManager|System\.exit|DisableAccessWarning)\b|\.newInstance\s*\(|Class\.forName\s*\(/.test(line)) {
+      add('vulnerabilidades', index, 'Operación de control de sistema', 'Llamada a métodos de sistema o reflexión', 'Revisar permisos y origen de datos', 'Media', 'Requiere validación de que se ejecuta con intención segura.');
+    }
+    if (/\b(?:process|execute|load|run|call|invoke)\s*\(\s*["']?[^"']*\$|\\$|%|@\w+@/.test(line)) {
+      add('vulnerabilidades', index, 'Inyección de comando en variables de entorno', 'Ejecución con interpolación de variables', 'Validar y escapar variables de entorno antes de usar', 'Alta', 'Riesgo de command injection si las variables provienen del usuario.');
+    }
+    if (/\b(?:setTimeout|setInterval|eval)\s*\(\s*["']\s*\+|dangerouslySetInnerHTML|innerHTML\s*\+=|innerText\s*=\s*user|insertAdjacentHTML/.test(line)) {
+      add('vulnerabilidades', index, 'Inyección XSS potencial', 'Inserción de HTML o JavaScript dinámico sin sanitizar', 'Usar plantillas seguras, escape de HTML, o Content Security Policy', 'Alta', 'Riesgo de Cross-Site Scripting si los datos provienen de entrada del usuario.');
+    }
+    if (/\b(?:CORS|Access-Control|@CrossOrigin)\b.*\*|\.setAllowCredentials\s*\(\s*true|allowCredentials\s*:\s*true/.test(line)) {
+      add('vulnerabilidades', index, 'CORS demasiado permisivo', 'Aceptar solicitudes de cualquier origen con credenciales', 'Especificar orígenes permitidos explícitamente', 'Media', 'Riesgo de acceso no autorizado si se combinan credenciales con CORS abierto.');
+    }
+    if (/\b(?:admin|administrator|root|superuser|sudo)\b\s*[:=].*(?:password|pass|pwd)|\b(?:default|demo|test|12345|password|letmein)\b\s*[:=]|hardcoded.*(?:admin|user).*[:=]/.test(line)) {
+      add('vulnerabilidades', index, 'Cuenta de acceso hardcodeada', 'Credenciales de administrador o usuario predeterminadas en el código', 'Usar un sistema de gestión de identidades autenticado', 'Alta', 'Riesgo crítico si se usan en producción sin cambiar.');
+    }
+    if (/\b(?:log|console|print|System\.out|logger|printf|sprintf)\s*\.\w+\s*\(\s*["'].*(?:password|secret|token|key|credential|ssn|card)/.test(line)) {
+      add('vulnerabilidades', index, 'Información sensible en logs', 'Exposición de secretos en salida o registros de auditoría', 'Usar niveles de log y redactar valores sensibles', 'Alta', 'Riesgo de exposición en logs, dumps o monitoreo inadecuado.');
+    }
+    if (/\b(?:http|ftp):\/\/|\.xml\b|\.config\b|web\.config|app\.config|\.properties\b.*(?:password|secret|key)/.test(line)) {
+      add('vulnerabilidades', index, 'Configuración sensible en archivo de texto', 'Secretos en archivos de configuración sin encriptación', 'Usar gestión de secretos o variables de entorno', 'Media', 'Riesgo si el archivo se expone o se incluye en control de versiones.');
+    }
+    if (/\b(?:useCallback|useMemo|React\.memo)\s*\(.*password|memo\(.*secret|cache\(.*token|memoize\(.*credential/.test(line)) {
+      add('vulnerabilidades', index, 'Datos sensibles en caché o memo', 'Secretos almacenados en memoria caché que puede no limpiarsen', 'No cachear datos sensibles; limpiar al logout', 'Media', 'Riesgo si el caché se persiste o se accede sin autorización.');
+    }
+    if (/\b(?:deprecated|obsolete|old|legacy|unsafe)\b.*(?:function|method|class|algorithm)|\b(?:unsafePerformMutation|unsafe_unwrap|unwrap_unchecked|memo\.skip_if_equal)\s*\(/.test(line)) {
+      add('vulnerabilidades', index, 'API deprecada o insegura', 'Uso de función, método o algoritmo marcado como deprecado o inseguro', 'Actualizar a la alternativa moderna y segura', 'Media', 'Riesgo si la API tiene vulnerabilidades conocidas o fue reemplazada.');
+    }
   }
   // Comment-only TODO markers were excluded from syntax checks above.
   rawLines.forEach((line, index) => {
     if (/^\s*(?:\/\/|#|--|\*|\/\*)/.test(line) && /\b(?:TODO|FIXME|HACK)\b/i.test(line)) {
       add('deuda-tecnica', index, 'Pendiente declarado en comentario', 'Marcador TODO / FIXME / HACK', 'Revisar el pendiente', 'Media', 'No demuestra código muerto ni un defecto confirmado.');
     }
+    // Security advisories in comments
+    if (/(?:security|vulnerability|cve|exploit|bug|flaw|breach|attack|threat)\b/i.test(line) && !/^\s*(?:\/\/|#|--|\*|\/\*)/.test(line.trim())) {
+      add('vulnerabilidades', index, 'Posible vulnerabilidad mencionada en código', 'Referencia a riesgo de seguridad en comentario', 'Investigar y resolver el problema identificado', 'Media', 'Comentario sugiere una vulnerabilidad conocida; validar y reparar.');
+    }
   });
+
+  // Detect insecure version patterns in dependency declarations
+  const dependencyLines = rawLines.filter((_, i) => /package\.json|requirements\.txt|pom\.xml|build\.gradle|\.sbt|\.lock|gemfile/i.test(lines[i]));
+  for (const [index, line] of dependencyLines.entries()) {
+    if (/["']version["']\s*[:=]\s*["']0\.\d+\.\d+["']|["']version["']\s*[:=]\s*["']\*["']|vulnerable.*version|outdated|deprecated/i.test(line)) {
+      add('vulnerabilidades', index, 'Versión de dependencia potencialmente insegura', 'Versión muy antigua o patrón comodín (0.x.x o *)', 'Actualizar a la versión estable y auditada más reciente', 'Media', 'Versiones antiguas pueden contener CVEs conocidas.');
+    }
+  }
+
   return findings;
 }

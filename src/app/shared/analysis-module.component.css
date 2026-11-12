@@ -13,6 +13,36 @@ label { display: block; font-size: 12px; color: #475467; margin: 8px 0; } input,
 .table-scroll { overflow: auto; } table { border-collapse: collapse; width: 100%; text-align: left; font-size: 12px; } caption { text-align: left; padding-bottom: 12px; } th, td { padding: 12px; border-bottom: 1px solid #e1e4eb; vertical-align: top; min-width: 150px; max-width: 330px; overflow-wrap: anywhere; } th { background: #f8f9fb; } small { display: block; font-size: 11px; margin-top: 6px; } code { font-size: 11px; overflow-wrap: anywhere; white-space: pre-wrap; }
 .badge { display: inline-block; background: #fef0ee; color: #b42318; padding: 4px 9px; border-radius: 12px; font-size: 11px; } .pagination { justify-content: flex-end; margin-top: 18px; }
 .notice { padding: 12px; border: 1px solid #fed7aa; background: #fffbeb; color: #92400e; border-radius: 8px; } .empty-results { text-align: center; padding: 40px 24px; } .empty-results p { max-width: 660px; margin: 12px auto; }
+
+/* Vulnerability-specific styling */
+.vulnerability-summary { margin-bottom: 24px; }
+.risk-overview { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
+.risk-stat { display: flex; align-items: center; gap: 12px; padding: 16px; border-radius: 10px; border: 1px solid #e1e4eb; background: #f9fafb; }
+.risk-stat.high-risk { border-color: #fecaca; background: #fef2f2; }
+.risk-stat.medium-risk { border-color: #fed7aa; background: #fffbeb; }
+.risk-stat.info-risk { border-color: #bfdbfe; background: #f0f9ff; }
+.risk-icon { font-size: 24px; } .risk-detail strong { display: block; font-size: 14px; margin-bottom: 4px; } .risk-detail p { font-size: 12px; margin: 0; }
+
+.vulnerability-legend { margin: 20px 0; padding: 16px; background: #f8f9fb; border: 1px solid #e1e4eb; border-radius: 10px; }
+.vulnerability-legend h3 { margin-top: 0; font-size: 14px; color: #344054; }
+.legend-items { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 12px; margin-top: 12px; }
+.legend-item { padding: 12px; border-radius: 8px; font-size: 13px; line-height: 1.6; }
+.legend-item.high { background: #fee2e2; border-left: 4px solid #dc2626; }
+.legend-item.medium { background: #fef3c7; border-left: 4px solid #f59e0b; }
+.legend-item.info { background: #dbeafe; border-left: 4px solid #2563eb; }
+.legend-item strong { display: block; margin-bottom: 4px; }
+
+.risk-badge { display: inline-block; padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; margin-left: 8px; }
+.risk-badge.high { background: #fee2e2; color: #dc2626; }
+.risk-badge.medium { background: #fef3c7; color: #d97706; }
+.risk-badge.info { background: #dbeafe; color: #2563eb; }
+
+.vulnerability-table tbody tr.risk-high { border-left: 4px solid #dc2626; background: rgba(252, 165, 165, 0.05); }
+.vulnerability-table tbody tr.risk-high:hover { background: rgba(252, 165, 165, 0.1); }
+.vulnerability-table tbody tr.risk-medium { border-left: 4px solid #f59e0b; background: rgba(253, 224, 71, 0.05); }
+.vulnerability-table tbody tr.risk-medium:hover { background: rgba(253, 224, 71, 0.1); }
+.vulnerability-table tbody tr.risk-info { border-left: 4px solid #2563eb; background: rgba(191, 219, 254, 0.05); }
+.vulnerability-table tbody tr.risk-info:hover { background: rgba(191, 219, 254, 0.1); }
 .component-map { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; } .component-map div { padding: 18px; border: 1px solid #f4c5c1; border-radius: 9px; background: #fff8f7; font-size: 13px; } .component-map span, .target-map span { display: block; margin-top: 6px; font-size: 12px; color: #667085; }
 .target-map { display: grid; grid-template-columns: repeat(4, 1fr); gap: 22px; padding-left: 20px; } .target-map li { padding: 16px; border: 1px solid #f4c5c1; border-radius: 9px; font-size: 13px; }
 .answer { white-space: pre-wrap; overflow-wrap: anywhere; padding: 16px; border-radius: 8px; background: #f8f9fb; color: #344054; } .chat-history article { margin-bottom: 20px; font-size: 14px; } .footnote { font-size: 12px; }

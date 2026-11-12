@@ -120,6 +120,20 @@ describe('Project analysis flow', () => {
     expect(fixture.componentInstance.visible()).toHaveLength(1);
   });
 
+  it('muestra en vulnerabilidades un resumen y ubicaciones sin clasificar inventadamente los valores sensibles', async () => {
+    const fixture = TestBed.createComponent(AnalysisModuleComponent);
+    fixture.componentRef.setInput('section', 'vulnerabilidades');
+    const report = await exampleReport();
+    report.hardcoded.push({ path: 'config.properties', line: 4, name: 'Configuración sensible con valor literal', kind: 'Revisión manual; valor no mostrado' });
+    TestBed.inject(AnalysisSessionService).complete('Proyecto', report);
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('config.properties');
+    expect(fixture.nativeElement.textContent).toContain('Prioridad sin clasificar');
+    expect(fixture.nativeElement.textContent).not.toContain('Reglas aprobadas');
+    expect(fixture.nativeElement.textContent).not.toContain('¿Qué significan estos riesgos?');
+    expect(fixture.componentInstance.vulnerabilityFileCount()).toBe(1);
+  });
+
   it('shares matrix status and observations with the approval screen and clears them for a new analysis', async () => {
     const fixture = TestBed.createComponent(AppComponent);
     const router = TestBed.inject(Router);

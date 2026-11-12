@@ -79,6 +79,10 @@ export class AnalysisModuleComponent {
     }
     return [...counts].map(([name, count]) => ({ name, count }));
   });
+  readonly countHighRisks = computed(() => (this.rows().filter(r => r.scope.startsWith('Alta')) ?? []).length);
+  readonly countMediumRisks = computed(() => (this.rows().filter(r => r.scope.startsWith('Media')) ?? []).length);
+  readonly countInfoRisks = computed(() => (this.rows().filter(r => r.scope.startsWith('Informativa')) ?? []).length);
+  readonly vulnerabilityFileCount = computed(() => new Set(this.rows().map(row => row.path)).size);
   readonly rows = computed<ResultRow[]>(() => {
     const report = this.store.session()?.report;
     if (!report) return [];
@@ -116,6 +120,12 @@ export class AnalysisModuleComponent {
   }
 
   filter(value: string): void { this.search.set(value); this.page.set(0); }
+  vulnerabilitySeverity(scope: string): string {
+    if (scope.startsWith('Alta.')) return 'Prioridad estimada: alta';
+    if (scope.startsWith('Media.')) return 'Prioridad estimada: media';
+    if (scope.startsWith('Informativa.')) return 'Informativo';
+    return 'Prioridad sin clasificar';
+  }
   setRuleStatus(id: string, status: string): void {
     const known = this.store.session()?.report.businessRules.some(rule => rule.ruleId === id) || Object.values(this.store.businessDiscoveries()).some(discovery => discovery?.reglas.some(rule => rule.id === id));
     if (['PENDING', 'VALIDATED', 'REJECTED', 'UNDER_INVESTIGATION'].includes(status) && known) {

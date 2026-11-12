@@ -181,6 +181,43 @@
           @if (aiAnswer()) { <p class="answer" aria-live="polite">{{ aiAnswer() }}</p> }
         </section>
       }
+    } @else if (section() === 'vulnerabilidades') {
+      <dl class="stats hardcoded-stats">
+        <div><dt>Hallazgos a revisar</dt><dd>{{ rows().length }}</dd></div>
+        <div><dt>Archivos con hallazgos</dt><dd>{{ vulnerabilityFileCount() }}</dd></div>
+        <div><dt>Archivos omitidos / errores</dt><dd>{{ session.report.skipped + session.report.errors }}</dd></div>
+      </dl>
+      <section class="card">
+        <div class="toolbar">
+          <label>Buscar archivo o hallazgo<input #riskFilter type="search" [value]="search()" (input)="filter(riskFilter.value)" placeholder="Buscar" /></label>
+          <button type="button" (click)="download('csv')">Descargar CSV</button>
+        </div>
+        @if (rows().length) {
+          <p role="status">{{ filtered().length }} resultado(s) · Página {{ page() + 1 }} de {{ pageCount() }}</p>
+          <div class="table-scroll"><table>
+            <caption>Hallazgos de seguridad pendientes de revisión</caption>
+            <thead><tr><th scope="col">Hallazgo</th><th scope="col">Archivo y línea</th><th scope="col">Detalle</th></tr></thead>
+            <tbody>@for (row of visible(); track row.id) {
+              <tr><td><strong>{{ row.title }}</strong><small>{{ vulnerabilitySeverity(row.scope) }}</small></td>
+                <td><code>{{ row.path }}{{ row.line ? ':' + row.line : '' }}</code></td>
+                <td><details><summary>Ver detalle</summary><p>{{ row.action }}</p><p>{{ row.scope }}</p></details></td></tr>
+            } @empty { <tr><td colspan="3">No hay coincidencias para esta búsqueda.</td></tr> }</tbody>
+          </table></div>
+          <div class="pagination"><button type="button" [disabled]="page() === 0" (click)="page.set(page() - 1)">Anterior</button><button type="button" [disabled]="page() + 1 >= pageCount()" (click)="page.set(page() + 1)">Siguiente</button></div>
+          <p>Son posibles riesgos; requieren revisión.</p>
+        } @else if (!session.report.analyzed) {
+          <div class="empty-results"><h2>No se pudieron analizar archivos</h2><p>Revisa la selección y los archivos omitidos.</p></div>
+        } @else {
+          <div class="empty-results"><h2>No se detectaron hallazgos</h2><p>El análisis es parcial y no descarta otros riesgos.</p></div>
+        }
+        @if (rows().length) {
+          <details><summary>Consultar a Huawei</summary><p>Se enviarán hasta 30 hallazgos, 15 dependencias y 10 reglas aprobadas.</p>
+            <button type="button" [disabled]="isAsking()" (click)="askHuawei()">{{ isAsking() ? 'Consultando…' : 'Consultar Huawei' }}</button>
+            @if (aiError()) { <p role="alert" class="notice">{{ aiError() }}</p> }
+            @if (aiAnswer()) { <p class="answer" aria-live="polite">{{ aiAnswer() }}</p> }
+          </details>
+        }
+      </section>
     } @else if (section() === 'datos-hardcodeados') {
       <dl class="stats hardcoded-stats">
         <div><dt>Hallazgos detectados</dt><dd>{{ session.report.hardcoded.length }}</dd></div>
@@ -232,11 +269,13 @@
     @if (!session.report.analyzed) {
       <p class="notice" role="status">No se pudo analizar ningún archivo compatible. Selecciona código fuente de texto; los archivos ZIP, JAR, PDF y Word no se interpretan.</p>
     }
-    <nav class="module-nav" aria-label="Resultados del análisis">
-      @for (item of analysisSections; track item.key) {
-        <a [class.active]="section() === item.key" [attr.aria-current]="section() === item.key ? 'page' : null" [routerLink]="link('analisis/' + item.key)">{{ item.title }}</a>
-      }
-    </nav>
+    @if (section() !== 'vulnerabilidades') {
+      <nav class="module-nav" aria-label="Resultados del análisis">
+        @for (item of analysisSections; track item.key) {
+          <a [class.active]="section() === item.key" [attr.aria-current]="section() === item.key ? 'page' : null" [routerLink]="link('analisis/' + item.key)">{{ item.title }}</a>
+        }
+      </nav>
+    }
     @if (section() === 'arquitectura') {
       @if (session.report.java.components.length) {
         <section class="card"><h2>Componentes Java y llamadas observadas</h2>
@@ -271,15 +310,73 @@
           <button type="button" (click)="download('csv')">Descargar matriz CSV</button>
         </div>
         <p role="status">{{ filtered().length }} resultado(s) de {{ rows().length }} · Página {{ page() + 1 }} de {{ pageCount() }}</p>
+        @if (section() === 'vulnerabilidades') {
+          <!-- Vulnerability-specific visual enhancement -->
+          <div class="vulnerability-summary">
+            @if (rows().length > 0) {
+              <div class="risk-overview">
+                <div class="risk-stat" [class.high-risk]="countHighRisks() > 0">
+                  <span class="risk-icon">⚠️</span>
+                  <div class="risk-detail">
+                    <strong>Riesgos Altos</strong>
+                    <p>{{ countHighRisks() }} hallazgo(s)</p>
+                  </div>
+                </div>
+                <div class="risk-stat" [class.medium-risk]="countMediumRisks() > 0">
+                  <span class="risk-icon">⚡</span>
+                  <div class="risk-detail">
+                    <strong>Riesgos Medios</strong>
+                    <p>{{ countMediumRisks() }} hallazgo(s)</p>
+                  </div>
+                </div>
+                <div class="risk-stat" [class.info-risk]="countInfoRisks() > 0">
+                  <span class="risk-icon">ℹ️</span>
+                  <div class="risk-detail">
+                    <strong>Informativo</strong>
+                    <p>{{ countInfoRisks() }} hallazgo(s)</p>
+                  </div>
+                </div>
+              </div>
+              <div class="vulnerability-legend">
+                <h3>¿Qué significan estos riesgos?</h3>
+                <div class="legend-items">
+                  <div class="legend-item high">
+                    <strong>🔴 Riesgo Alto:</strong> Requiere atención inmediata. Podría permitir acceso no autorizado, pérdida de datos o ejecución de código malicioso.
+                  </div>
+                  <div class="legend-item medium">
+                    <strong>🟠 Riesgo Medio:</strong> Problema de seguridad que debe resolverse. Podría causar impacto si se explota.
+                  </div>
+                  <div class="legend-item info">
+                    <strong>🔵 Informativo:</strong> Hallazgo técnico detectado. Validar si representa un riesgo en tu contexto.
+                  </div>
+                </div>
+              </div>
+            }
+          </div>
+        }
         @if (rows().length) {
           <div class="table-scroll">
-            <table>
+            <table [class.vulnerability-table]="section() === 'vulnerabilidades'">
               <caption>{{ meta().title }} · Resultados detectados en {{ session.project }}</caption>
               <thead><tr><th scope="col">Hallazgo</th><th scope="col">Condición / entrada</th><th scope="col">Acción / salida</th><th scope="col">Evidencia</th><th scope="col">Estado y alcance</th></tr></thead>
               <tbody>
                 @for (row of visible(); track row.id) {
-                  <tr>
-                    <td><strong>{{ row.title }}</strong><small>{{ row.id }}</small></td>
+                  <tr [class.risk-high]="section() === 'vulnerabilidades' && row.scope.startsWith('Alta')" 
+                      [class.risk-medium]="section() === 'vulnerabilidades' && row.scope.startsWith('Media')"
+                      [class.risk-info]="section() === 'vulnerabilidades' && row.scope.startsWith('Informativa')">
+                    <td>
+                      <strong>{{ row.title }}</strong>
+                      @if (section() === 'vulnerabilidades') {
+                        <span class="risk-badge" [class.high]="row.scope.startsWith('Alta')" 
+                                                 [class.medium]="row.scope.startsWith('Media')"
+                                                 [class.info]="row.scope.startsWith('Informativa')">
+                          @if (row.scope.startsWith('Alta')) { 🔴 ALTO }
+                          @else if (row.scope.startsWith('Media')) { 🟠 MEDIO }
+                          @else { 🔵 INFO }
+                        </span>
+                      }
+                      <small>{{ row.id }}</small>
+                    </td>
                     <td>{{ row.condition }}</td><td>{{ row.action }}</td>
                     <td><code>{{ row.path }}{{ row.line ? ':' + row.line : '' }}</code><small>{{ row.evidence }}</small></td>
                     <td>
